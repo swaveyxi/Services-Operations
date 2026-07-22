@@ -1,0 +1,63 @@
+# Dependencies
+**/node_modules/
+**/node_modules*/
+**/.pnp/
+**/.pnp.js
+**/*.partial_*/
+
+# Build output
+**/dist/
+**/build/
+**/lib/
+**/tmp/
+**/temp/
+**/release/
+**/coverage/
+**/.nyc_output/
+**/.cache/
+**/.rush/
+**/*.backup_*/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Package manager logs and caches
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+**/.git.local-backup/
+.claude
+
+# SharePoint / SPFx local config artifacts
+**/.heft/
+**/.sass-cache/
+
+# Local & Dev files
+**/scripts/
+**/seeds/
+**/.claude
+**/.codex
+**/.agents
+**/docs/
+**/.power-platform/
+
+# Kortex
+.kortex/

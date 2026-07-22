@@ -1,0 +1,190 @@
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+.idRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.cid {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.summaryVal {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--c-text);
+  line-height: 1.4;
+}
+.full {
+  grid-column: 1 / -1;
+}
+.profitGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+.stat {
+  padding: var(--space-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  background: var(--c-canvas);
+}
+.stat.accent {
+  background: var(--c-brand-glow);
+  border-color: var(--c-brand-dim);
+}
+.statVal {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.statVal.pos {
+  color: var(--t-positive-fg);
+}
+.statVal.neg {
+  color: var(--t-negative-fg);
+}
+.priceInput {
+  width: 140px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+.priceInput:disabled {
+  background: var(--c-canvas);
+  color: var(--c-text-muted);
+}
+.lineTotal {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.routeItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+}
+.routeItem:last-child {
+  margin-bottom: 0;
+}
+.routeItemLink {
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.routeItemLink:hover {
+  border-color: var(--c-brand);
+  background: var(--c-brand-glow);
+}
+.approvalRoute {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.approvalNote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: var(--space-3) var(--space-4);
+  background: var(--c-canvas);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  color: var(--c-text-muted);
+  margin-top: var(--space-4);
+}
+.routeMeta {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+}
+.formRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.formRow:hover {
+  border-color: var(--c-brand);
+  background: var(--c-brand-glow);
+}
+.formMeta {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  margin-top: 2px;
+}
+.formRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.badgeGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.badgeLabel {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--c-text-faint);
+  white-space: nowrap;
+}
+.lockNote {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+@media (max-width: 760px) {
+  .summaryGrid,
+  .profitGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

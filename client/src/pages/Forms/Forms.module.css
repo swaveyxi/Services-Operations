@@ -1,0 +1,52 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+.formCard {
+  padding: var(--space-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  background: var(--c-surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.formCard:hover {
+  border-color: var(--c-brand);
+  box-shadow: var(--shadow-md);
+}
+.formCard.active {
+  border-color: var(--c-brand);
+  background: var(--c-brand-glow);
+}
+.formTitle {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.formTeam {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.7rem;
+  color: var(--c-text-muted);
+}
+.renderWrap {
+  max-width: var(--page-max-3xl);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+.success {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: var(--space-4);
+  background: var(--t-positive-bg);
+  border: 1px solid var(--t-positive-bd);
+  color: var(--t-positive-fg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  font-weight: 600;
+}

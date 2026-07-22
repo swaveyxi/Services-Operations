@@ -1,0 +1,69 @@
+.tpl {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+}
+.tplHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--c-canvas);
+  border-bottom: 1px solid var(--c-border);
+}
+.tplMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tplName {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.tplTeam {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+}
+.tableWrap {
+  padding: var(--space-4) var(--space-5);
+}
+.preset {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+}
+.changed {
+  color: var(--t-info-fg);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.dateInput {
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  width: 100%;
+}
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--c-border);
+}
+.notice {
+  padding: var(--space-4);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-left: 3px solid var(--t-info-fg);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  color: var(--c-text-muted);
+  margin-top: var(--space-4);
+}

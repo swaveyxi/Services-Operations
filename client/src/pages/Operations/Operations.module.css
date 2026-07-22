@@ -1,0 +1,441 @@
+.section {
+  margin-bottom: var(--space-6);
+}
+
+.sectionMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sortToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.6rem;
+  height: 30px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--c-text-muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.sortToggle:hover {
+  border-color: var(--c-brand);
+  color: var(--c-brand);
+  background: var(--c-brand-glow);
+}
+
+/* ── Form list rows are selectable ── */
+.formItem {
+  cursor: pointer;
+}
+.formItemActive {
+  border-color: var(--c-brand);
+  background: var(--c-brand-glow);
+}
+
+/* ── Form detail view (full width, opened from the queue) ── */
+.detailWrap {
+  max-width: var(--page-max-3xl);
+  margin: 0 auto;
+}
+.detailEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 240px;
+  color: var(--c-text-faint);
+  text-align: center;
+}
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--c-border);
+}
+.detailTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+}
+.detailMeta {
+  font-size: 0.8rem;
+  color: var(--c-text-muted);
+  margin-top: 4px;
+}
+.detailBadges {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.actionBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  background: var(--c-canvas);
+  border-top: 1px solid var(--c-border);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  flex-wrap: wrap;
+}
+.actionGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.detailBody {
+  padding: var(--space-6);
+}
+
+/* ── Overview: team cards ── */
+.teamGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: var(--space-4);
+}
+.teamCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  cursor: pointer;
+}
+.teamCardHead {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.teamIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  background: var(--c-brand-glow);
+  color: var(--c-brand);
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+.teamName {
+  font-weight: 700;
+  font-size: 1rem;
+}
+.teamSub {
+  font-size: 0.76rem;
+  color: var(--c-text-muted);
+}
+.teamStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  border-top: 1px solid var(--c-border);
+  padding-top: var(--space-3);
+}
+.teamStat {
+  text-align: center;
+}
+.teamStatVal {
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  line-height: 1;
+}
+.teamStatVal.alert {
+  color: var(--c-brand);
+}
+.teamStatLabel {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c-text-faint);
+  margin-top: 4px;
+}
+.teamCardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--c-brand);
+  font-weight: 600;
+}
+.workItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+  background: var(--c-surface);
+}
+.workTitle {
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.workMeta {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  margin-top: 2px;
+}
+.cid {
+  font-family: var(--font-mono);
+  color: var(--c-brand);
+  font-weight: 600;
+}
+.formRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  cursor: pointer;
+}
+.formRow:hover {
+  border-color: var(--c-brand);
+  background: var(--c-brand-glow);
+}
+.formRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.badgeGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.badgeLabel {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--c-text-faint);
+  white-space: nowrap;
+}
+.footActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+/* ── Handoff banner (shown at top of HandoffPanel body) ── */
+.handoffBanner {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-brand-glow);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.handoffMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--c-text-muted);
+}
+.handoffMeta i {
+  color: var(--c-brand);
+}
+.handoffAttachment {
+  padding-left: 1.4rem;
+}
+.fileChipInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--c-text-muted);
+}
+.handoffLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--c-brand);
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+/* ── Completion panel (inline below form body) ── */
+.completionPanel {
+  padding: var(--space-5) var(--space-6);
+  border-top: 1px solid var(--c-border);
+  background: var(--c-canvas);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+/* Break out of handoffEntry's own padding so panel reaches card edges */
+.handoffEntry .completionPanel {
+  margin: var(--space-2) calc(-1 * var(--space-6)) calc(-1 * var(--space-4)) calc(-1 * var(--space-6));
+  width: calc(100% + 2 * var(--space-6));
+}
+.completionPanel h4 {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c-text-muted);
+  margin: 0 0 var(--space-2);
+}
+
+/* ── Handoff chips (row items) ── */
+.handoffChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.handoffChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: color-mix(in srgb, var(--c-brand) 10%, transparent);
+  color: var(--c-brand);
+  border: 1px solid color-mix(in srgb, var(--c-brand) 25%, transparent);
+}
+.handoffChipAcknowledged {
+  background: color-mix(in srgb, var(--c-positive, #16a34a) 10%, transparent);
+  color: var(--c-positive, #16a34a);
+  border-color: color-mix(in srgb, var(--c-positive, #16a34a) 25%, transparent);
+}
+.handoffChipCompleted {
+  background: color-mix(in srgb, var(--c-text-faint) 10%, transparent);
+  color: var(--c-text-faint);
+  border-color: var(--c-border);
+}
+
+/* ── Handoff entry list (HandoffPanel) ── */
+.handoffList {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--c-border);
+}
+.handoffEntry {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--c-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.handoffEntryHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.handoffTeamLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--c-text);
+}
+.handoffTeamLabel i {
+  color: var(--c-brand);
+  font-size: 0.75rem;
+}
+.handoffStatusChip {
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--c-surface);
+  color: var(--c-text-muted);
+  border: 1px solid var(--c-border);
+}
+.handoffStatusPending {
+  background: color-mix(in srgb, var(--c-brand) 10%, transparent);
+  color: var(--c-brand);
+  border-color: color-mix(in srgb, var(--c-brand) 25%, transparent);
+}
+.handoffStatusAcknowledged {
+  background: color-mix(in srgb, var(--c-positive, #16a34a) 10%, transparent);
+  color: var(--c-positive, #16a34a);
+  border-color: color-mix(in srgb, var(--c-positive, #16a34a) 25%, transparent);
+}
+.handoffStatusCompleted {
+  background: color-mix(in srgb, var(--c-text-faint) 12%, transparent);
+  color: var(--c-text-faint);
+  border-color: var(--c-border);
+}
+.handoffMeta {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  margin-left: auto;
+}
+.handoffActions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.handoffDone {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--c-text-muted);
+}
+.handoffDone i {
+  color: var(--c-positive, #16a34a);
+}
+.reportLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--c-brand);
+  text-decoration: underline;
+  margin-left: var(--space-2);
+}
+
+/* ── Handoff entry status variants (FormPanel banners) ── */
+.handoffEntryPending {
+  background: var(--c-brand-glow);
+}
+.handoffEntryAcknowledged {
+  background: color-mix(in srgb, var(--c-positive, #16a34a) 6%, transparent);
+}
+.handoffEntryCompleted {
+  background: color-mix(in srgb, var(--c-text-faint) 5%, transparent);
+  opacity: 0.85;
+}
+.handoffMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--c-text-muted);
+}

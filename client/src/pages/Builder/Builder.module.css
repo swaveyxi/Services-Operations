@@ -1,0 +1,89 @@
+.wrap {
+  max-width: var(--page-max-3xl);
+  margin: 0 auto;
+}
+.clientBox {
+  position: relative;
+}
+.suggestions {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  max-height: 240px;
+  overflow-y: auto;
+}
+.suggestion {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.suggestion:hover {
+  background: var(--c-canvas);
+}
+.newClientNote {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--c-brand-glow);
+  border: 1px solid var(--c-brand-dim);
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  color: var(--c-text);
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-md);
+  background: var(--c-canvas);
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.4rem 0.3rem 0.7rem;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+}
+.tag.auto {
+  border-style: dashed;
+}
+.tagRemove {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--c-text-faint);
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+.tagRemove:hover {
+  color: var(--c-brand);
+}
+.emptyTags {
+  color: var(--c-text-faint);
+  font-size: 0.8rem;
+  font-style: italic;
+  align-self: center;
+}
+.idPreview {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--c-brand);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}

@@ -1,0 +1,142 @@
+/* Template picker grid — mirrors Forms grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+.tplCard {
+  padding: var(--space-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  background: var(--c-surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.tplCard:hover:not(.locked) {
+  border-color: var(--c-brand);
+  box-shadow: var(--shadow-md);
+}
+.tplCard.active {
+  border-color: var(--c-brand);
+  background: var(--c-brand-glow);
+}
+.tplCard.locked {
+  cursor: default;
+  opacity: 0.85;
+}
+.tplCard.submitted {
+  cursor: default;
+  border-color: var(--c-border);
+  background: var(--c-canvas);
+  opacity: 0.72;
+}
+.tplName {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.tplTeamBadge {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.7rem;
+}
+.lockBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--c-text-muted);
+}
+
+/* Activities section */
+.tplBlock {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+.tplBlockHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+}
+.tplBlockName {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.actTable {
+  padding: var(--space-4) var(--space-5);
+  background: var(--c-canvas);
+}
+.actHeadRow {
+  display: grid;
+  grid-template-columns: 22px 1fr 150px 150px;
+  gap: var(--space-3);
+  padding-bottom: 6px;
+}
+.actRow {
+  display: grid;
+  grid-template-columns: 22px 1fr 150px 150px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.45rem 0;
+}
+.actName {
+  font-size: 0.85rem;
+}
+.actName.off {
+  color: var(--c-text-faint);
+  text-decoration: line-through;
+}
+.dateInput {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+/* Amendment diff display */
+.preset {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+}
+.changed {
+  color: var(--t-info-fg);
+  font-weight: 600;
+}
+.statusFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.statusNote {
+  font-size: 0.78rem;
+  color: var(--c-text-muted);
+  flex: 1;
+}
+
+/* Footer — outside both cards, always visible */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+@media (max-width: 680px) {
+  .actRow,
+  .actHeadRow {
+    grid-template-columns: 22px 1fr;
+  }
+  .actHeadRow span:nth-child(n + 3) {
+    display: none;
+  }
+}

@@ -1,0 +1,265 @@
+import createError from 'http-errors';
+import { randomUUID } from 'node:crypto';
+import { AUTO_APPROVE_THRESHOLD } from '../../../shared/constants';
+import {
+  findCampaignById,
+  findCampaignByKey,
+  findCampaignsByOwner,
+  findAllCampaigns,
+  createCampaign,
+  updateCampaign,
+  getProfitabilityBatch,
+  getRevenueItems,
+  getCostItems,
+  getRevenueItemsBatch,
+  getCostItemsBatch,
+  replaceRevenueItems,
+  replaceCostItems,
+  type CampaignRow,
+  type RevenueItemInsert,
+  type CostItemInsert,
+  type CampaignFilters,
+} from '../models/campaigns';
+import { findClientById } from '../models/clients';
+import { calcProfitability, type ProfitabilitySummary } from './profitability.service';
+import { notifyCampaignApproved, notifyCampaignRejected, notifyMDPendingApproval } from './email.service';
+import { findUserById } from '../models/users';
+
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+// ─── Campaign ID generation ───────────────────────────────────────────────────
+
+async function generateCampaignId(abbr: string, date: Date): Promise<string> {
+  const upper = abbr.toUpperCase();
+  const tail = `/${MONTHS[date.getMonth()]}/${date.getFullYear()}`;
+  const base = `${upper}${tail}`;
+  if (!(await findCampaignByKey(base))) return base;
+  for (let i = 2; i <= 99; i++) {
+    const candidate = `${upper}${i}${tail}`;
+    if (!(await findCampaignByKey(candidate))) return candidate;
+  }
+  throw createError(409, 'Could not generate a unique campaign ID for this client and date.');
+}
+
+// ─── Create ───────────────────────────────────────────────────────────────────
+
+export type CreateCampaignInput = {
+  client_id?: string | null;
+  unit: CampaignRow['unit'];
+  description?: string | null;
+  revenue_items?: RevenueItemInsert[];
+  cost_items?: CostItemInsert[];
+};
+
+export async function createNewCampaign(
+  input: CreateCampaignInput,
+  owner_id: string,
+): Promise<CampaignRow> {
+  let abbr = 'DRG';
+  if (input.client_id) {
+    const client = await findClientById(input.client_id);
+    if (!client) throw createError(404, 'Client not found.');
+    abbr = (client.abbreviation?.trim() || client.display_name.slice(0, 6)).toUpperCase();
+  }
+
+  const campaignId = await generateCampaignId(abbr, new Date());
+  const id = randomUUID();
+
+  await createCampaign({
+    id,
+    campaign_id: campaignId,
+    client_id: input.client_id ?? null,
+    owner_user_id: owner_id,
+    unit: input.unit,
+    description: input.description ?? null,
+    campaign_status: 'Draft',
+  });
+
+  if (input.revenue_items?.length) await replaceRevenueItems(id, input.revenue_items);
+  if (input.cost_items?.length) await replaceCostItems(id, input.cost_items);
+
+  return (await findCampaignById(id))!;
+}
+
+// ─── Read ─────────────────────────────────────────────────────────────────────
+
+export async function getCampaignDetail(id: string): Promise<
+  CampaignRow & {
+    revenue_items: Awaited<ReturnType<typeof getRevenueItems>>;
+    cost_items: Awaited<ReturnType<typeof getCostItems>>;
+    profitability: ProfitabilitySummary;
+  }
+> {
+  const campaign = await findCampaignById(id);
+  if (!campaign) throw createError(404, 'Campaign not found.');
+
+  const [revenue_items, cost_items] = await Promise.all([getRevenueItems(id), getCostItems(id)]);
+
+  return {
+    ...campaign,
+    revenue_items,
+    cost_items,
+    profitability: calcProfitability(revenue_items, cost_items),
+  };
+}
+
+function profFromTotals(totals: { total_revenue: number; total_cost: number }): ProfitabilitySummary {
+  const gross_profit = totals.total_revenue - totals.total_cost;
+  const profit_percent =
+    totals.total_revenue > 0 ? (gross_profit / totals.total_revenue) * 100 : 0;
+  return { ...totals, gross_profit, profit_percent };
+}
+
+export async function listMyCampaigns(
+  ownerId: string,
+  opts: { status?: CampaignRow['campaign_status']; limit?: number; offset?: number } = {},
+) {
+  const rows = await findCampaignsByOwner(ownerId, opts);
+  const profMap = await getProfitabilityBatch(rows.map((r) => r.id));
+  return rows.map((r) => ({ ...r, profitability: profFromTotals(profMap.get(r.id)!) }));
+}
+
+export async function listAllCampaigns(filters: CampaignFilters = {}) {
+  const rows = await findAllCampaigns(filters);
+  const ids = rows.map((r) => r.id);
+  const [profMap, revenueMap, costMap] = await Promise.all([
+    getProfitabilityBatch(ids),
+    getRevenueItemsBatch(ids),
+    getCostItemsBatch(ids),
+  ]);
+  return rows.map((r) => ({
+    ...r,
+    revenue_items: revenueMap.get(r.id) ?? [],
+    cost_items: costMap.get(r.id) ?? [],
+    profitability: profFromTotals(profMap.get(r.id)!),
+  }));
+}
+
+// ─── Commercials update ───────────────────────────────────────────────────────
+
+export async function updateCommercials(
+  id: string,
+  revenueItems: RevenueItemInsert[],
+  costItems: CostItemInsert[],
+): Promise<ProfitabilitySummary> {
+  const campaign = await findCampaignById(id);
+  if (!campaign) throw createError(404, 'Campaign not found.');
+  if (campaign.campaign_status === 'Active' || campaign.campaign_status === 'Closed') {
+    throw createError(409, 'Commercials cannot be edited once the campaign is Active or Closed.');
+  }
+
+  await Promise.all([replaceRevenueItems(id, revenueItems), replaceCostItems(id, costItems)]);
+
+  const [updatedRevenue, updatedCosts] = await Promise.all([getRevenueItems(id), getCostItems(id)]);
+
+  return calcProfitability(updatedRevenue, updatedCosts);
+}
+
+// ─── Approval flow ────────────────────────────────────────────────────────────
+
+export async function submitForApproval(id: string): Promise<void> {
+  const campaign = await findCampaignById(id);
+  if (!campaign) throw createError(404, 'Campaign not found.');
+  if (campaign.campaign_status !== 'Profitability') {
+    throw createError(409, 'Campaign must be in Profitability stage before submitting for approval.');
+  }
+
+  await updateCampaign(id, { approval_status: 'Pending' });
+  await autoApproveIfEligible(id);
+}
+
+/* Full case + profitability breakdown shared by the approved and rejected
+   case-report emails — only the outcome-specific fields (approvedBy/
+   approverComments/auto vs. rejectedBy/note) differ between the two. */
+async function buildCaseReportData(campaign: CampaignRow) {
+  const [revenueItems, costItems, owner, client] = await Promise.all([
+    getRevenueItems(campaign.id),
+    getCostItems(campaign.id),
+    findUserById(campaign.owner_user_id),
+    campaign.client_id ? findClientById(campaign.client_id) : null,
+  ]);
+  const { total_revenue, total_cost, gross_profit, profit_percent } = calcProfitability(
+    revenueItems,
+    costItems,
+  );
+
+  return {
+    campaignDisplayId: campaign.campaign_id,
+    campaignUuid: campaign.id,
+    unit: campaign.unit,
+    clientName: client?.display_name ?? 'N/A',
+    description: campaign.description,
+    ownerName: owner?.name ?? 'Case Owner',
+    totalRevenue: total_revenue,
+    totalCost: total_cost,
+    grossProfit: gross_profit,
+    profitPercent: profit_percent,
+    revenueItems,
+    costItems,
+  };
+}
+
+export async function autoApproveIfEligible(id: string): Promise<void> {
+  const [revenueItems, costItems] = await Promise.all([getRevenueItems(id), getCostItems(id)]);
+  const { profit_percent } = calcProfitability(revenueItems, costItems);
+
+  const campaign = await findCampaignById(id);
+  if (!campaign) return;
+
+  if (profit_percent >= AUTO_APPROVE_THRESHOLD) {
+    await updateCampaign(id, {
+      campaign_status: 'Active',
+      approval_status: 'Approved',
+      approved_by: 'System',
+    });
+    const data = { ...(await buildCaseReportData(campaign)), approvedBy: 'System', auto: true };
+    await notifyCampaignApproved(data, campaign.owner_user_id);
+  } else {
+    const owner = await findUserById(campaign.owner_user_id);
+    await notifyMDPendingApproval({
+      campaignDisplayId: campaign.campaign_id,
+      campaignUuid: campaign.id,
+      ownerName: owner?.name ?? 'Case Owner',
+      profitPercent: profit_percent,
+    });
+  }
+}
+
+export async function approveCampaign(
+  id: string,
+  approvedBy: string,
+  note?: string,
+): Promise<void> {
+  const campaign = await findCampaignById(id);
+  if (!campaign) throw createError(404, 'Campaign not found.');
+  if (campaign.approval_status !== 'Pending') {
+    throw createError(409, 'Campaign is not pending approval.');
+  }
+
+  await updateCampaign(id, {
+    campaign_status: 'Active',
+    approval_status: 'Approved',
+    approved_by: approvedBy,
+    approval_note: note ?? null,
+  });
+
+  const data = { ...(await buildCaseReportData(campaign)), approvedBy, approverComments: note, auto: false };
+  await notifyCampaignApproved(data, campaign.owner_user_id);
+}
+
+export async function rejectCampaign(id: string, rejectedBy: string, note: string): Promise<void> {
+  const campaign = await findCampaignById(id);
+  if (!campaign) throw createError(404, 'Campaign not found.');
+  if (campaign.approval_status !== 'Pending') {
+    throw createError(409, 'Campaign is not pending approval.');
+  }
+
+  await updateCampaign(id, {
+    approval_status: 'Rejected',
+    approved_by: rejectedBy,
+    approval_note: note,
+  });
+
+  const data = { ...(await buildCaseReportData(campaign)), rejectedBy, note };
+  await notifyCampaignRejected(data, campaign.owner_user_id);
+}

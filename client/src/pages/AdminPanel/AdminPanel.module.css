@@ -1,0 +1,296 @@
+.tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 2px solid var(--c-border);
+  margin-bottom: var(--space-5);
+}
+.tab {
+  padding: 0.55rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tab:hover {
+  color: var(--c-text);
+}
+.tab.active {
+  color: var(--c-brand);
+  border-bottom-color: var(--c-brand);
+}
+
+/* Roles section */
+.searchBar {
+  margin-bottom: var(--space-4);
+}
+.userRow {
+  display: grid;
+  grid-template-columns: 36px minmax(140px, 1fr) 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  background: var(--c-surface);
+}
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--c-brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.userInfo {
+  min-width: 0;
+}
+.userName {
+  font-weight: 600;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.userEmail {
+  font-size: 0.72rem;
+  color: var(--c-text-faint);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rolePills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--c-canvas);
+  border: 1px solid var(--c-border-mid);
+  color: var(--c-text-muted);
+}
+.pill.platform {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+.pillRemove {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  line-height: 1;
+  display: flex;
+}
+.pillRemove:hover { opacity: 1; }
+.roleActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* Team membership section */
+.teamLayout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+.teamList {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.teamItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-surface);
+  transition: background 0.1s;
+}
+.teamItem:last-child { border-bottom: none; }
+.teamItem:hover { background: var(--c-canvas); }
+.teamItem.selected {
+  background: var(--c-canvas);
+  color: var(--c-brand);
+  font-weight: 700;
+}
+.teamItem.selected i { color: var(--c-brand); }
+.teamCount {
+  margin-left: auto;
+  font-size: 0.7rem;
+  background: var(--c-canvas);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-weight: 600;
+  color: var(--c-text-muted);
+}
+.teamPanel {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  overflow: visible;
+}
+.teamPanelHead {
+  padding: 0.8rem 1rem;
+  background: var(--c-canvas);
+  border-bottom: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.teamPanelBody {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.memberList {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 60px;
+}
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.5rem 0.75rem;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+}
+.memberEmail {
+  flex: 1;
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.memberName {
+  font-size: 0.72rem;
+  color: var(--c-text-muted);
+  flex-shrink: 0;
+}
+.groupEmailRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-canvas);
+  min-height: 44px;
+}
+.groupInput {
+  flex: 1;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.6rem;
+}
+.groupEmailValue {
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  color: var(--c-text);
+  font-weight: 500;
+}
+.groupEmailEmpty {
+  font-size: 0.78rem;
+  color: var(--c-text-faint);
+  font-style: italic;
+}
+.addRow {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--c-border);
+  background: var(--c-canvas);
+}
+.addInputWrap {
+  flex: 1;
+  position: relative;
+}
+.addInput {
+  width: 100%;
+}
+.suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 1000;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.suggestionItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--c-border);
+  transition: background 0.1s;
+}
+.suggestionItem:last-child { border-bottom: none; }
+.suggestionItem:hover,
+.suggestionItem.highlighted {
+  background: var(--c-canvas);
+}
+.suggestionMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+@media (max-width: 720px) {
+  .userRow {
+    grid-template-columns: 36px 1fr;
+  }
+  .userRow .rolePills,
+  .userRow .roleActions {
+    grid-column: 1 / -1;
+  }
+  .teamLayout {
+    grid-template-columns: 1fr;
+  }
+  .teamList {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
