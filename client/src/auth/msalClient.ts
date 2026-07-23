@@ -3,7 +3,9 @@
  */
 import { PublicClientApplication, type AccountInfo } from '@azure/msal-browser';
 
-export const GRAPH_SCOPES = ['Files.Read.All', 'Sites.Read.All'];
+// ReadWrite (rather than Read) is required to call Graph's createLink and mint
+// an organization-scoped sharing link for picked attachments — see filePicker.ts.
+export const GRAPH_SCOPES = ['Files.ReadWrite.All', 'Sites.ReadWrite.All'];
 
 let msal: PublicClientApplication | null = null;
 let ready: Promise<void> | null = null;

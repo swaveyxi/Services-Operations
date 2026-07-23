@@ -21,6 +21,32 @@ type PickedItemRef = {
   parentReference?: { driveId?: string };
 };
 
+// The item's own webUrl only opens for people who already have permission on
+// it (usually just the picker's own OneDrive). Minting an org-scoped sharing
+// link means anyone else the form/handoff gets routed to can open it without
+// hitting SharePoint's "request access" wall — see createOrganizationLink.
+async function createOrganizationLink(
+  graphToken: string,
+  driveId: string,
+  itemId: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${GRAPH_ROOT}/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(itemId)}/createLink`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${graphToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'view', scope: 'organization' }),
+      },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.link?.webUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function resolvePickedFile(graphToken: string, ref: PickedItemRef): Promise<OneDriveFile> {
   const driveId = ref.parentReference?.driveId;
   if (!driveId) throw new Error('Picked item is missing its drive reference.');
@@ -30,11 +56,12 @@ async function resolvePickedFile(graphToken: string, ref: PickedItemRef): Promis
   );
   if (!res.ok) throw new Error(`Could not resolve picked file: ${res.status}`);
   const item = await res.json();
+  const shareUrl = await createOrganizationLink(graphToken, driveId, item.id);
   return {
     id: item.id,
     drive_id: item.parentReference?.driveId ?? driveId,
     name: item.name,
-    web_url: item.webUrl,
+    web_url: shareUrl ?? item.webUrl,
     mime_type: item.file?.mimeType,
     size: item.size,
   };
