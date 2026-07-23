@@ -149,6 +149,10 @@ export default function Workplan() {
       }));
 
     if (submit) {
+      if (campaign.profitability.total_revenue <= 0) {
+        setError('Save commercials for this case in Tracker before submitting the workplan.');
+        return;
+      }
       if (items.length === 0) {
         setError('Select at least one new workplan template to submit.');
         return;

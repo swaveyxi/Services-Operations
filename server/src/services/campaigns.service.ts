@@ -164,6 +164,11 @@ export async function submitForApproval(id: string): Promise<void> {
     throw createError(409, 'Campaign must be in Profitability stage before submitting for approval.');
   }
 
+  const [revenueItems, costItems] = await Promise.all([getRevenueItems(id), getCostItems(id)]);
+  if (calcProfitability(revenueItems, costItems).total_revenue <= 0) {
+    throw createError(409, 'Cannot submit for approval — no revenue commercials have been configured for this case.');
+  }
+
   await updateCampaign(id, { approval_status: 'Pending' });
   await autoApproveIfEligible(id);
 }
