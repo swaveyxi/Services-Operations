@@ -113,7 +113,7 @@ export default function Home() {
       <div className='page-head'>
         <div>
           <h1 className='page-title'>My Cases</h1>
-          <p className='page-sub'>Business cases you own, newest first.</p>
+          <p className='page-sub'>Business cases you created and own.</p>
         </div>
         <button className='btn btn-primary' onClick={() => navigate('/builder')}>
           <i className='fa-solid fa-plus' aria-hidden='true' /> New Case
