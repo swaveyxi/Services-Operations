@@ -41,13 +41,13 @@ export async function findCampaignsByOwner(
 ): Promise<CampaignRow[]> {
   const conditions = [eq(campaigns.owner_user_id, ownerId)];
   if (opts.status) conditions.push(eq(campaigns.campaign_status, opts.status));
-  return db
+  const query = db
     .select()
     .from(campaigns)
     .where(and(...conditions))
-    .orderBy(desc(campaigns.created_at))
-    .limit(opts.limit ?? 50)
-    .offset(opts.offset ?? 0);
+    .orderBy(desc(campaigns.created_at));
+  if (opts.limit === undefined) return query;
+  return query.limit(opts.limit).offset(opts.offset ?? 0);
 }
 
 export async function findAllCampaigns(opts: CampaignFilters = {}): Promise<CampaignRow[]> {
