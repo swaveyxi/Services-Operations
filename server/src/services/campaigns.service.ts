@@ -24,6 +24,8 @@ import { findClientById } from '../models/clients';
 import { calcProfitability, type ProfitabilitySummary } from './profitability.service';
 import { notifyCampaignApproved, notifyCampaignRejected, notifyMDPendingApproval } from './email.service';
 import { findUserById } from '../models/users';
+import { findTeamsByUser } from '../models/teams';
+import { getBusinessUnitsForTeams } from '../../../shared/constants';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
@@ -115,6 +117,19 @@ export async function listMyCampaigns(
   opts: { status?: CampaignRow['campaign_status']; limit?: number; offset?: number } = {},
 ) {
   const rows = await findCampaignsByOwner(ownerId, opts);
+  const profMap = await getProfitabilityBatch(rows.map((r) => r.id));
+  return rows.map((r) => ({ ...r, profitability: profFromTotals(profMap.get(r.id)!) }));
+}
+
+export async function listUnitCampaigns(
+  userId: string,
+  opts: { limit?: number; offset?: number } = {},
+) {
+  const teams = await findTeamsByUser(userId);
+  const units = getBusinessUnitsForTeams(teams.map((t) => t.team_name));
+  if (units.length === 0) return [];
+
+  const rows = await findAllCampaigns({ unit: units, limit: opts.limit, offset: opts.offset });
   const profMap = await getProfitabilityBatch(rows.map((r) => r.id));
   return rows.map((r) => ({ ...r, profitability: profFromTotals(profMap.get(r.id)!) }));
 }

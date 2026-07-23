@@ -47,6 +47,22 @@ export function getBusinessUnitTeam(unit: BusinessUnit): string {
   return BUSINESS_UNIT_TEAM_MAP[unit];
 }
 
+/* Reverse of BUSINESS_UNIT_TEAM_MAP — ops team name → the business unit it
+   owns case work for. Teams with no case-owning unit (Tech, Finance,
+   Marketing, Candidate Experience, Verifications Operations) simply have no
+   entry here. */
+export const TEAM_TO_BUSINESS_UNIT_MAP: Partial<Record<string, BusinessUnit>> = Object.fromEntries(
+  Object.entries(BUSINESS_UNIT_TEAM_MAP).map(([unit, team]) => [team, unit as BusinessUnit]),
+);
+
+export function getBusinessUnitsForTeams(teamNames: string[]): BusinessUnit[] {
+  return [
+    ...new Set(
+      teamNames.map((t) => TEAM_TO_BUSINESS_UNIT_MAP[t]).filter((u): u is BusinessUnit => Boolean(u)),
+    ),
+  ];
+}
+
 /* Support form catalog: key → display title + routed ops team. */
 export const FORM_CATALOG_META: Record<string, { title: string; operations_team: string }> = {
   'client-onboarding': { title: 'Client Onboarding Form', operations_team: 'Client Engagement' },

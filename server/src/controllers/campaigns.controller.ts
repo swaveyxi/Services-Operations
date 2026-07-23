@@ -4,6 +4,7 @@ import {
   createNewCampaign,
   getCampaignDetail,
   listMyCampaigns,
+  listUnitCampaigns,
   listAllCampaigns,
   updateCommercials,
   submitForApproval,
@@ -38,6 +39,12 @@ export async function listCampaigns(req: Request, res: Response): Promise<void> 
       limit,
       offset,
     });
+    res.json(campaigns);
+    return;
+  }
+
+  if (scope === 'unit') {
+    const campaigns = await listUnitCampaigns(req.user!.id, { limit, offset });
     res.json(campaigns);
     return;
   }
