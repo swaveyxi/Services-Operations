@@ -54,6 +54,11 @@ select.statusSelect {
   font-size: 0.95rem;
   margin-top: 0.15rem;
 }
+.ownerName {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--c-text-muted);
+}
 .desc {
   color: var(--c-text-muted);
   font-size: 0.8rem;

@@ -24,6 +24,7 @@ export type Campaign = {
   campaign_id: string;
   client_id: string | null;
   owner_user_id: string;
+  owner_name?: string | null;
   unit: string;
   description: string | null;
   campaign_status: string;

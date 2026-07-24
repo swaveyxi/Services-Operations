@@ -29,7 +29,15 @@ function CaseRow({
           <span className={s.cid}>{c.campaign_id}</span>
           <StatusBadge kind='campaign' value={toCampaignDisplayStatus(c.campaign_status)} />
         </div>
-        <div className={s.client}>{clientName || '—'}</div>
+        <div className={s.client}>
+          {clientName || (!c.owner_name && '—')}
+          {c.owner_name && (
+            <span className={s.ownerName}>
+              {clientName ? ' · ' : ''}
+              {c.owner_name}
+            </span>
+          )}
+        </div>
       </div>
 
       <LifecyclePipeline approval_status={c.approval_status} campaign_status={c.campaign_status} />

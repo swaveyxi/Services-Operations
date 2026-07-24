@@ -183,18 +183,26 @@ export default function Tracker() {
             <h2 className='section-title'>Case Summary</h2>
           </div>
           <div className={s.summaryGrid}>
-            <div className={s.summaryItem}>
-              <span className='eyebrow'>Business Unit</span>
-              <span className={s.summaryVal}>{c.unit || '—'}</span>
+            <div className={s.summaryCol}>
+              <div className={s.summaryItem}>
+                <span className='eyebrow'>Business Unit</span>
+                <span className={s.summaryVal}>{c.unit || '—'}</span>
+              </div>
             </div>
-            <div className={s.summaryItem}>
-              <span className='eyebrow'>Client</span>
-              <span className={s.summaryVal}>{clientName || '—'}</span>
+            <div className={s.summaryCol}>
+              <div className={s.summaryItem}>
+                <span className='eyebrow'>Client</span>
+                <span className={s.summaryVal}>{clientName || '—'}</span>
+              </div>
+              <div className={s.summaryItem}>
+                <span className='eyebrow'>Case Owner</span>
+                <span className={s.summaryVal}>{c.owner_name || '—'}</span>
+              </div>
             </div>
-            <div className={`${s.summaryItem} ${s.full}`}>
-              <span className='eyebrow'>Description</span>
-              <span className={s.summaryVal}>{c.description || '—'}</span>
-            </div>
+          </div>
+          <div className={`${s.summaryItem} ${s.full}`}>
+            <span className='eyebrow'>Description</span>
+            <span className={s.summaryVal}>{c.description || '—'}</span>
           </div>
         </div>
 
