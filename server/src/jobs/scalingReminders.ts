@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { findPendingScalingHandoffs, updateHandoff, type HandoffRow } from '../models/formHandoffs';
 import { findFormById } from '../models/forms';
 import { findCampaignById } from '../models/campaigns';
+import { RESOURCE_SCALING_CANDIDATE_THRESHOLD } from '../../../shared/constants';
 import {
   notifyResourceScalingReminder,
   notifyResourceScalingEscalation,
@@ -34,6 +35,13 @@ async function markReminderSent(handoff: HandoffRow, key: string): Promise<void>
 async function checkHandoff(handoff: HandoffRow): Promise<void> {
   const form = await findFormById(handoff.form_id);
   if (!form) return;
+
+  // Handoffs created before the resource-scaling candidate threshold existed
+  const candidateCount = Number(
+    (form.form_details as Record<string, unknown> | null)?.candidateCount,
+  );
+  if (!Number.isFinite(candidateCount) || candidateCount < RESOURCE_SCALING_CANDIDATE_THRESHOLD)
+    return;
 
   const testDate = getEarliestTestDate((form.form_details ?? {}) as Record<string, unknown>);
   if (!testDate) return;
