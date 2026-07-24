@@ -21,12 +21,17 @@ export function deliveryTone(status: string): BadgeTone {
   return 'pending';
 }
 
-/* Map internal DB pipeline stages to user-facing campaign statuses. */
+/* Map internal DB pipeline stages to user-facing campaign statuses.
+   'Workplan' just means a workplan row exists — set the moment the case
+   owner saves a draft (createConfiguredWorkplan), whether or not it's ever
+   been submitted. 'Profitability' only happens inside submitWorkplan, in the
+   same transaction as submitForApproval setting approval_status: 'Pending' —
+   so only that stage genuinely means "awaiting a decision". */
 export function toCampaignDisplayStatus(dbStatus: string): string {
   const s = (dbStatus || '').toLowerCase();
-  if (s === 'workplan' || s === 'profitability') return 'Pending';
+  if (s === 'profitability') return 'Pending';
   if (s === 'closed') return 'Inactive';
-  if (s === 'draft') return 'Draft';
+  if (s === 'draft' || s === 'workplan') return 'Draft';
   if (s === 'active') return 'Active';
   return dbStatus;
 }
