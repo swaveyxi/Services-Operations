@@ -237,7 +237,7 @@ export default function Builder() {
             placeholder='e.g. 7UP'
             maxLength={40}
             value={abbreviation}
-            onChange={(e) => setAbbreviation(e.target.value.toUpperCase())}
+            onChange={(e) => setAbbreviation(e.target.value.toUpperCase().replace(/\s+/g, ''))}
           />
           <span className='field-hint'>
             Used to generate the campaign ID, e.g.{' '}

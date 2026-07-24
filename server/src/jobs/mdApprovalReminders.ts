@@ -2,6 +2,8 @@ import cron from 'node-cron';
 import { findAllCampaigns, getProfitabilityBatch } from '../models/campaigns';
 import { findUserById } from '../models/users';
 import { notifyMDApprovalReminder } from '../services/email.service';
+import { autoApproveIfEligible } from '../services/campaigns.service';
+import { AUTO_APPROVE_THRESHOLD } from '../../../shared/constants';
 
 // ─── Scheduler ────────────────────────────────────────────────────────────────
 // Daily nudge for campaigns still awaiting MD approval — no escalation tier,
@@ -20,16 +22,30 @@ async function runReminderCheck(): Promise<void> {
     console.log(`[MD Approval Reminders] reminding on ${pending.length} pending campaign(s)`);
 
     for (const campaign of pending) {
-      const owner = await findUserById(campaign.owner_user_id);
       const totals = profMap.get(campaign.id);
       const profitPercent =
         totals && totals.total_revenue > 0
           ? ((totals.total_revenue - totals.total_cost) / totals.total_revenue) * 100
           : 0;
-      const pendingDays = Math.max(
-        0,
-        Math.floor((Date.now() - campaign.updated_at.getTime()) / 86_400_000),
-      );
+
+      // Migrated/edited campaigns can end up Pending despite already
+      // qualifying (e.g. commercials changed after the fact, or legacy rows
+      // imported straight into 'Pending' without ever running this check) —
+      // resolve it instead of repeating a stale "still awaiting approval"
+      // reminder that would be factually wrong about the threshold.
+      if (profitPercent >= AUTO_APPROVE_THRESHOLD) {
+        await autoApproveIfEligible(campaign.id);
+        console.log(`[MD Approval Reminders] auto-approved ${campaign.campaign_id} (${profitPercent.toFixed(1)}%)`);
+        continue;
+      }
+
+      const owner = await findUserById(campaign.owner_user_id);
+      const updatedMs = campaign.updated_at?.getTime();
+      const createdMs = campaign.created_at?.getTime();
+      const baseMs = Number.isFinite(updatedMs) ? updatedMs : createdMs;
+      const pendingDays = Number.isFinite(baseMs)
+        ? Math.max(0, Math.floor((Date.now() - baseMs!) / 86_400_000))
+        : 0;
       await notifyMDApprovalReminder({
         campaignDisplayId: campaign.campaign_id,
         campaignUuid: campaign.id,

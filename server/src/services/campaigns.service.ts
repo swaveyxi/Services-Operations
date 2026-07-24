@@ -68,7 +68,10 @@ export async function createNewCampaign(
   if (input.client_id) {
     const client = await findClientById(input.client_id);
     if (!client) throw createError(404, 'Client not found.');
-    abbr = (client.abbreviation?.trim() || client.display_name.slice(0, 6)).toUpperCase();
+    // Defensive: strip whitespace even though the abbreviation field itself
+    // is now constrained — the display_name-slice fallback below isn't, and
+    // could still land mid-word (e.g. "AB C Ltd".slice(0, 6) -> "AB C L").
+    abbr = (client.abbreviation?.trim() || client.display_name.slice(0, 6)).toUpperCase().replace(/\s+/g, '');
   }
 
   const campaignId = await generateCampaignId(abbr, new Date());
