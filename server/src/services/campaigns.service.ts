@@ -27,7 +27,14 @@ import { findUserById, findUsersByIds } from '../models/users';
 import { findTeamsByUser } from '../models/teams';
 import { getBusinessUnitsForTeams } from '../../../shared/constants';
 
-const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+// Full month names — must match the format legacy-migrated campaign_ids already
+// use (e.g. "CHEVRON/JULY/2026"), or generateCampaignId can't detect an existing
+// campaign for the same client+month and starts a parallel numbering sequence
+// under the abbreviated form (e.g. "CHEVRON/JUL/2026") instead of continuing it.
+const MONTHS = [
+  'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+  'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
+];
 
 // ─── Campaign ID generation ───────────────────────────────────────────────────
 
