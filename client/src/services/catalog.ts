@@ -20,7 +20,13 @@ export async function getServiceCatalog(unit: string): Promise<ServiceCatalog> {
 export async function getWorkplanTemplates(unit?: string): Promise<WorkplanTemplate[]> {
   const qs = unit ? `?unit=${encodeURIComponent(unit)}` : '';
   const res = await api.get(`/workplan-templates${qs}`);
-  const rows: { template_id: string; template_name: string; activity_name: string }[] = await res.json();
+  const rows: {
+    template_id: string;
+    template_name: string;
+    activity_name: string;
+    sequence: number | null;
+    description: string | null;
+  }[] = await res.json();
 
   const map = new Map<string, WorkplanTemplate>();
   for (const row of rows) {
@@ -33,7 +39,11 @@ export async function getWorkplanTemplates(unit?: string): Promise<WorkplanTempl
       });
     }
     const tmpl = map.get(row.template_id)!;
-    tmpl.activities.push({ sequence: tmpl.activities.length + 1, name: row.activity_name });
+    tmpl.activities.push({
+      sequence: row.sequence ?? tmpl.activities.length + 1,
+      name: row.activity_name,
+      description: row.description,
+    });
   }
   return Array.from(map.values());
 }

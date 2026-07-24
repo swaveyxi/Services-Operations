@@ -156,7 +156,11 @@ export async function getWorkplanTemplates(unit?: Unit): Promise<WorkplanTemplat
     return db
       .select()
       .from(workplanTemplates)
-      .where(eq(workplanTemplates.unit, unit));
+      .where(eq(workplanTemplates.unit, unit))
+      .orderBy(workplanTemplates.template_id, workplanTemplates.sequence);
   }
-  return db.select().from(workplanTemplates);
+  return db
+    .select()
+    .from(workplanTemplates)
+    .orderBy(workplanTemplates.template_id, workplanTemplates.sequence);
 }

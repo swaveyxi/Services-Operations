@@ -14,6 +14,8 @@ export const workplanTemplates = table(
     activity_name: t.varchar({ length: 255 }).notNull(),
     unit: t.mysqlEnum(['Recruitment', 'Scholarships', 'Testing']),
     duration_days: t.int(),
+    sequence: t.int(),
+    description: t.text(),
   },
   (table) => [t.index('idx_wt_template').on(table.template_id, table.unit)],
 );

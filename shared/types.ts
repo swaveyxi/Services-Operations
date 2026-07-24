@@ -70,7 +70,7 @@ export type WorkplanTemplate = {
   id: string;
   template_id: string;
   template_name: string;
-  activities: { sequence: number; name: string }[];
+  activities: { sequence: number; name: string; description?: string | null }[];
 };
 
 export type OneDriveFile = {
