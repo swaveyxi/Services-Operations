@@ -37,7 +37,9 @@ export function teamCampaignBuckets(
     );
     if (wps.length === 0) continue;
     if (wps.some((w) => ACTIONABLE_WORKPLAN_STATUSES.includes(w.status))) reviews.push(c);
-    else active.push(c);
+    else if (wps.every((w) => w.status === 'Accepted')) active.push(c);
+    // else: nothing but Draft/Not Started — the case owner hasn't submitted
+    // anything for this team yet, so there's nothing for ops to see at all.
   }
   return { reviews, active };
 }

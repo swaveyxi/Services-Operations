@@ -86,7 +86,11 @@ export default function WorkplanReview() {
     ? rows.reduce((earliest, r) => (Date.parse(r.created_at) < Date.parse(earliest) ? r.created_at : earliest), rows[0].created_at)
     : null;
 
-  const opsRows = rows.filter((t) => userTeamNames.includes(getOpsTeam(t.template_name)));
+  // Draft means the case owner hasn't submitted it yet — ops has nothing to
+  // review or act on until then, so it never belongs in this page's rows.
+  const opsRows = rows.filter(
+    (t) => userTeamNames.includes(getOpsTeam(t.template_name)) && t.status !== 'Draft',
+  );
   const isOpsReviewer = opsRows.length > 0;
   const actionRows = opsRows;
 
@@ -188,7 +192,11 @@ export default function WorkplanReview() {
       {teamGroups.map(({ teamName, rows: teamRows }) => {
         const groupAllAccepted = teamRows.every((t) => t.status === 'Accepted');
         const groupPending = teamRows.filter((t) => ['Submitted', 'Pending Review'].includes(t.status));
-        const groupAwaitingOwner = !groupAllAccepted && groupPending.length === 0;
+        // "Counter sent" only makes sense once ops has actually sent one —
+        // require an Amended row, don't infer it from the mere absence of
+        // pending ones (which was also true for never-submitted Draft rows).
+        const groupAwaitingOwner =
+          !groupAllAccepted && groupPending.length === 0 && teamRows.some((t) => t.status === 'Amended');
 
         return (
           <section key={teamName} className={s.panel}>

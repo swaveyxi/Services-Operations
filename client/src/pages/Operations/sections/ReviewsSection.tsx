@@ -12,7 +12,7 @@ function workplanAggregate(statuses: string[]): string {
   if (statuses.every((s) => s === 'Accepted')) return 'Accepted';
   if (statuses.includes('Amended')) return 'Amended';
   if (statuses.some((s) => s === 'Submitted' || s === 'Pending Review')) return 'Pending Review';
-  return 'Submitted';
+  return 'Draft';
 }
 
 export default function ReviewsSection({ team, campaigns, workplans }: SectionProps) {
