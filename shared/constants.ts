@@ -19,6 +19,10 @@ export const DELIVERY_GO_LIVE = '2026-07-18T00:00:00Z';
 /* Profitability auto-approval threshold (Phase 2 backend automation). */
 export const AUTO_APPROVE_THRESHOLD = 60;
 
+/* Test Order candidate count at/above which the automatic Tech resource
+   scaling handoff is triggered — below this, infrastructure scaling isn't needed. */
+export const RESOURCE_SCALING_CANDIDATE_THRESHOLD = 1000;
+
 /* Template name → ops team. */
 export const OPS_TEAM_NAME_MAP: Record<string, string> = {
   'Experienced Hire Recruitment': 'Client Engagement',
