@@ -45,8 +45,13 @@ export function verifyJwt(token: string): Promise<jwt.JwtPayload> {
   });
 }
 
+// Trimmed + lowercased so a login never mints a second `users` row for
+// someone whose token claim differs in case/whitespace from an existing
+// record (e.g. one seeded by scripts/migrate-legacy-data.ts, which normalizes
+// the same way when matching legacy submitter emails).
 export function emailFromClaims(payload: jwt.JwtPayload): string {
-  return (payload['preferred_username'] as string) ?? (payload['email'] as string) ?? '';
+  const raw = (payload['preferred_username'] as string) ?? (payload['email'] as string) ?? '';
+  return raw.trim().toLowerCase();
 }
 
 function rolesFromClaims(payload: jwt.JwtPayload): string[] {

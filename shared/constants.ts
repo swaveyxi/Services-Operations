@@ -19,6 +19,10 @@ export const DELIVERY_GO_LIVE = '2026-07-18T00:00:00Z';
 /* Profitability auto-approval threshold (Phase 2 backend automation). */
 export const AUTO_APPROVE_THRESHOLD = 60;
 
+/* Test Order candidate count at/above which the automatic Tech resource
+   scaling handoff is triggered — below this, infrastructure scaling isn't needed. */
+export const RESOURCE_SCALING_CANDIDATE_THRESHOLD = 1000;
+
 /* Template name → ops team. */
 export const OPS_TEAM_NAME_MAP: Record<string, string> = {
   'Experienced Hire Recruitment': 'Client Engagement',
@@ -45,6 +49,22 @@ export const BUSINESS_UNIT_TEAM_MAP: Record<BusinessUnit, string> = {
 
 export function getBusinessUnitTeam(unit: BusinessUnit): string {
   return BUSINESS_UNIT_TEAM_MAP[unit];
+}
+
+/* Reverse of BUSINESS_UNIT_TEAM_MAP — ops team name → the business unit it
+   owns case work for. Teams with no case-owning unit (Tech, Finance,
+   Marketing, Candidate Experience, Verifications Operations) simply have no
+   entry here. */
+export const TEAM_TO_BUSINESS_UNIT_MAP: Partial<Record<string, BusinessUnit>> = Object.fromEntries(
+  Object.entries(BUSINESS_UNIT_TEAM_MAP).map(([unit, team]) => [team, unit as BusinessUnit]),
+);
+
+export function getBusinessUnitsForTeams(teamNames: string[]): BusinessUnit[] {
+  return [
+    ...new Set(
+      teamNames.map((t) => TEAM_TO_BUSINESS_UNIT_MAP[t]).filter((u): u is BusinessUnit => Boolean(u)),
+    ),
+  ];
 }
 
 /* Support form catalog: key → display title + routed ops team. */

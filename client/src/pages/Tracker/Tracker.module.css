@@ -24,9 +24,16 @@
   gap: var(--space-5);
 }
 .summaryGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  align-items: flex-start;
   gap: var(--space-4);
+}
+.summaryCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
 }
 .summaryItem {
   display: flex;
@@ -40,7 +47,7 @@
   line-height: 1.4;
 }
 .full {
-  grid-column: 1 / -1;
+  margin-top: var(--space-4);
 }
 .profitGrid {
   display: grid;
@@ -183,8 +190,10 @@
   gap: 0.35rem;
 }
 @media (max-width: 760px) {
-  .summaryGrid,
   .profitGrid {
     grid-template-columns: 1fr 1fr;
+  }
+  .summaryGrid {
+    flex-direction: column;
   }
 }

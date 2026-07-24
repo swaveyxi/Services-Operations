@@ -9,7 +9,7 @@ import {
   type WorkplanRow,
   type WorkplanInsert,
 } from '../models/workplans';
-import { findCampaignById, updateCampaign } from '../models/campaigns';
+import { findCampaignById, updateCampaign, getRevenueItems, getCostItems } from '../models/campaigns';
 import { findUserById } from '../models/users';
 import {
   notifyWorkplanSubmitted,
@@ -18,6 +18,7 @@ import {
   notifyWorkplanAccepted,
 } from './email.service';
 import { submitForApproval } from './campaigns.service';
+import { calcProfitability } from './profitability.service';
 import { getOpsTeam } from '../../../shared/constants';
 
 // ─── Aggregate status ─────────────────────────────────────────────────────────
@@ -63,6 +64,14 @@ export async function submitWorkplan(id: string): Promise<void> {
   if (!wp) throw createError(404, 'Workplan not found.');
   if (wp.status !== 'Draft' && wp.status !== 'Amended') {
     throw createError(409, `Cannot submit a workplan with status "${wp.status}".`);
+  }
+
+  const [revenueItems, costItems] = await Promise.all([
+    getRevenueItems(wp.campaign_id),
+    getCostItems(wp.campaign_id),
+  ]);
+  if (calcProfitability(revenueItems, costItems).total_revenue <= 0) {
+    throw createError(409, 'Commercials must be saved for this case before the workplan can be submitted.');
   }
 
   const isResubmit = wp.status === 'Amended';

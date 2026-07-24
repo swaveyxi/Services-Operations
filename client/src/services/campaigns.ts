@@ -11,6 +11,11 @@ export async function listMyCampaigns(): Promise<Campaign[]> {
   return res.json();
 }
 
+export async function listUnitCampaigns(): Promise<Campaign[]> {
+  const res = await api.get('/campaigns?scope=unit');
+  return res.json();
+}
+
 export async function getCampaign(id: string): Promise<Campaign | null> {
   const res = await api.get(`/campaigns/${id}`).catch(() => null);
   if (!res) return null;

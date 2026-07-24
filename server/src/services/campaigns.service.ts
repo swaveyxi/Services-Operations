@@ -23,7 +23,9 @@ import {
 import { findClientById } from '../models/clients';
 import { calcProfitability, type ProfitabilitySummary } from './profitability.service';
 import { notifyCampaignApproved, notifyCampaignRejected, notifyMDPendingApproval } from './email.service';
-import { findUserById } from '../models/users';
+import { findUserById, findUsersByIds } from '../models/users';
+import { findTeamsByUser } from '../models/teams';
+import { getBusinessUnitsForTeams } from '../../../shared/constants';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
@@ -88,18 +90,24 @@ export async function getCampaignDetail(id: string): Promise<
     revenue_items: Awaited<ReturnType<typeof getRevenueItems>>;
     cost_items: Awaited<ReturnType<typeof getCostItems>>;
     profitability: ProfitabilitySummary;
+    owner_name: string | null;
   }
 > {
   const campaign = await findCampaignById(id);
   if (!campaign) throw createError(404, 'Campaign not found.');
 
-  const [revenue_items, cost_items] = await Promise.all([getRevenueItems(id), getCostItems(id)]);
+  const [revenue_items, cost_items, owner] = await Promise.all([
+    getRevenueItems(id),
+    getCostItems(id),
+    findUserById(campaign.owner_user_id),
+  ]);
 
   return {
     ...campaign,
     revenue_items,
     cost_items,
     profitability: calcProfitability(revenue_items, cost_items),
+    owner_name: owner?.name ?? null,
   };
 }
 
@@ -110,13 +118,46 @@ function profFromTotals(totals: { total_revenue: number; total_cost: number }): 
   return { ...totals, gross_profit, profit_percent };
 }
 
+async function getOwnerNamesBatch(ownerIds: string[]): Promise<Map<string, string>> {
+  const uniqueIds = [...new Set(ownerIds)];
+  const owners = await findUsersByIds(uniqueIds);
+  return new Map(owners.map((u) => [u.id, u.name]));
+}
+
 export async function listMyCampaigns(
   ownerId: string,
   opts: { status?: CampaignRow['campaign_status']; limit?: number; offset?: number } = {},
 ) {
   const rows = await findCampaignsByOwner(ownerId, opts);
-  const profMap = await getProfitabilityBatch(rows.map((r) => r.id));
-  return rows.map((r) => ({ ...r, profitability: profFromTotals(profMap.get(r.id)!) }));
+  const [profMap, ownerMap] = await Promise.all([
+    getProfitabilityBatch(rows.map((r) => r.id)),
+    getOwnerNamesBatch(rows.map((r) => r.owner_user_id)),
+  ]);
+  return rows.map((r) => ({
+    ...r,
+    profitability: profFromTotals(profMap.get(r.id)!),
+    owner_name: ownerMap.get(r.owner_user_id) ?? null,
+  }));
+}
+
+export async function listUnitCampaigns(
+  userId: string,
+  opts: { limit?: number; offset?: number } = {},
+) {
+  const teams = await findTeamsByUser(userId);
+  const units = getBusinessUnitsForTeams(teams.map((t) => t.team_name));
+  if (units.length === 0) return [];
+
+  const rows = await findAllCampaigns({ unit: units, limit: opts.limit, offset: opts.offset });
+  const [profMap, ownerMap] = await Promise.all([
+    getProfitabilityBatch(rows.map((r) => r.id)),
+    getOwnerNamesBatch(rows.map((r) => r.owner_user_id)),
+  ]);
+  return rows.map((r) => ({
+    ...r,
+    profitability: profFromTotals(profMap.get(r.id)!),
+    owner_name: ownerMap.get(r.owner_user_id) ?? null,
+  }));
 }
 
 export async function listAllCampaigns(filters: CampaignFilters = {}) {
@@ -162,6 +203,11 @@ export async function submitForApproval(id: string): Promise<void> {
   if (!campaign) throw createError(404, 'Campaign not found.');
   if (campaign.campaign_status !== 'Profitability') {
     throw createError(409, 'Campaign must be in Profitability stage before submitting for approval.');
+  }
+
+  const [revenueItems, costItems] = await Promise.all([getRevenueItems(id), getCostItems(id)]);
+  if (calcProfitability(revenueItems, costItems).total_revenue <= 0) {
+    throw createError(409, 'Cannot submit for approval — no revenue commercials have been configured for this case.');
   }
 
   await updateCampaign(id, { approval_status: 'Pending' });

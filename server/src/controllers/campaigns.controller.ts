@@ -4,6 +4,7 @@ import {
   createNewCampaign,
   getCampaignDetail,
   listMyCampaigns,
+  listUnitCampaigns,
   listAllCampaigns,
   updateCommercials,
   submitForApproval,
@@ -22,15 +23,16 @@ function parsePagination(query: Record<string, unknown>) {
 export async function listCampaigns(req: Request, res: Response): Promise<void> {
   const { scope, status, unit } = req.query as Record<string, string | undefined>;
 
+  // Callers that don't pass page/limit always expect the complete set (org-wide
+  // dashboards, "My Cases", campaign lookup maps) — only paginate if explicitly requested.
+  const explicitPaging = req.query.page !== undefined || req.query.limit !== undefined;
+  const { limit, offset } = explicitPaging ? parsePagination(req.query) : { limit: undefined, offset: undefined };
+
   if (scope === 'all') {
     const canViewAll = ['operations', 'operations_admin', 'super_admin', 'md'].some((r) =>
       req.user!.roles.includes(r),
     );
     if (!canViewAll) throw createError(403, 'Insufficient permissions to view all campaigns.');
-    // Callers of scope=all always expect the complete set (org-wide dashboards,
-    // campaign lookup maps) — only paginate if a page/limit was explicitly requested.
-    const explicitPaging = req.query.page !== undefined || req.query.limit !== undefined;
-    const { limit, offset } = explicitPaging ? parsePagination(req.query) : { limit: undefined, offset: undefined };
     const campaigns = await listAllCampaigns({
       status: status as never,
       unit: unit as never,
@@ -41,7 +43,12 @@ export async function listCampaigns(req: Request, res: Response): Promise<void> 
     return;
   }
 
-  const { limit, offset } = parsePagination(req.query);
+  if (scope === 'unit') {
+    const campaigns = await listUnitCampaigns(req.user!.id, { limit, offset });
+    res.json(campaigns);
+    return;
+  }
+
   const campaigns = await listMyCampaigns(req.user!.id, { status: status as never, limit, offset });
   res.json(campaigns);
 }

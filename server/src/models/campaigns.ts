@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db } from '../db/database';
 import { campaigns, campaignRevenueItems, campaignCostItems } from '../db/schema';
@@ -13,8 +13,9 @@ export type CostItemInsert = Omit<typeof campaignCostItems.$inferInsert, 'id' | 
 export type CampaignFilters = {
   status?: CampaignRow['campaign_status'];
   approvalStatus?: CampaignRow['approval_status'];
-  unit?: CampaignRow['unit'];
+  unit?: CampaignRow['unit'] | CampaignRow['unit'][];
   ownerId?: string;
+  excludeOwnerId?: string;
   limit?: number;
   offset?: number;
 };
@@ -41,21 +42,26 @@ export async function findCampaignsByOwner(
 ): Promise<CampaignRow[]> {
   const conditions = [eq(campaigns.owner_user_id, ownerId)];
   if (opts.status) conditions.push(eq(campaigns.campaign_status, opts.status));
-  return db
+  const query = db
     .select()
     .from(campaigns)
     .where(and(...conditions))
-    .orderBy(desc(campaigns.created_at))
-    .limit(opts.limit ?? 50)
-    .offset(opts.offset ?? 0);
+    .orderBy(desc(campaigns.created_at));
+  if (opts.limit === undefined) return query;
+  return query.limit(opts.limit).offset(opts.offset ?? 0);
 }
 
 export async function findAllCampaigns(opts: CampaignFilters = {}): Promise<CampaignRow[]> {
   const conditions = [];
   if (opts.status) conditions.push(eq(campaigns.campaign_status, opts.status));
   if (opts.approvalStatus) conditions.push(eq(campaigns.approval_status, opts.approvalStatus));
-  if (opts.unit) conditions.push(eq(campaigns.unit, opts.unit));
+  if (opts.unit) {
+    conditions.push(
+      Array.isArray(opts.unit) ? inArray(campaigns.unit, opts.unit) : eq(campaigns.unit, opts.unit),
+    );
+  }
   if (opts.ownerId) conditions.push(eq(campaigns.owner_user_id, opts.ownerId));
+  if (opts.excludeOwnerId) conditions.push(ne(campaigns.owner_user_id, opts.excludeOwnerId));
   const query = db
     .select()
     .from(campaigns)

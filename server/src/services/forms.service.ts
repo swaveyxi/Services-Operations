@@ -18,7 +18,7 @@ import {
 } from '../models/formHandoffs';
 import { findCampaignById } from '../models/campaigns';
 import { findUserById } from '../models/users';
-import { FORM_TITLE_TO_KEY } from '../../../shared/constants';
+import { FORM_TITLE_TO_KEY, RESOURCE_SCALING_CANDIDATE_THRESHOLD } from '../../../shared/constants';
 import {
   notifyFormSubmitted,
   notifyHandoffAcknowledged,
@@ -44,11 +44,14 @@ export async function submitForm(input: CreateFormInput): Promise<FormRow> {
   if (!campaign) throw createError(404, 'Campaign not found.');
 
   const isTestOrder = FORM_TITLE_TO_KEY[input.form_type] === 'test-order';
+  const candidateCount = Number((input.form_details as Record<string, unknown> | null)?.candidateCount);
+  const needsResourceScaling =
+    isTestOrder && Number.isFinite(candidateCount) && candidateCount >= RESOURCE_SCALING_CANDIDATE_THRESHOLD;
   const id = randomUUID();
 
   await createForm({ ...input, id, submitted_on: input.submitted_on ?? new Date() });
 
-  if (isTestOrder) {
+  if (needsResourceScaling) {
     await createHandoff({
       id: randomUUID(),
       form_id: id,
@@ -82,6 +85,8 @@ export async function submitForm(input: CreateFormInput): Promise<FormRow> {
       formId: id,
       formDetails: (input.form_details ?? {}) as Record<string, unknown>,
     });
+  }
+  if (needsResourceScaling) {
     await notifyResourceScalingRequested({
       campaignDisplayId: campaign.campaign_id,
       campaignUuid: campaign.id,

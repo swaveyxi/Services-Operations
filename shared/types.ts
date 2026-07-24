@@ -24,6 +24,7 @@ export type Campaign = {
   campaign_id: string;
   client_id: string | null;
   owner_user_id: string;
+  owner_name?: string | null;
   unit: string;
   description: string | null;
   campaign_status: string;
@@ -69,7 +70,7 @@ export type WorkplanTemplate = {
   id: string;
   template_id: string;
   template_name: string;
-  activities: { sequence: number; name: string }[];
+  activities: { sequence: number; name: string; description?: string | null }[];
 };
 
 export type OneDriveFile = {

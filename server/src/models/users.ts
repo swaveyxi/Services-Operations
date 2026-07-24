@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/database';
 import { users } from '../db/schema';
 
@@ -17,6 +17,11 @@ export async function findUserByEmail(email: string): Promise<UserRow | null> {
 
 export async function findAllUsers(): Promise<UserRow[]> {
   return db.select().from(users);
+}
+
+export async function findUsersByIds(ids: string[]): Promise<UserRow[]> {
+  if (!ids.length) return [];
+  return db.select().from(users).where(inArray(users.id, ids));
 }
 
 // Roles are stored as a JSON array — JSON_CONTAINS gives an exact element match.
