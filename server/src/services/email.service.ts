@@ -90,6 +90,9 @@ async function teamRecipients(teamName: string): Promise<string[]> {
   }
   if (team.group_email) return [team.group_email];
   const members = await findTeamMembers(team.team_key);
+  if (!members.length) {
+    console.warn(`[EMAIL] team "${teamName}" has no members assigned — notification silently dropped`);
+  }
   return members.map((m) => m.email);
 }
 
@@ -102,7 +105,11 @@ async function cloudRoleRecipients(teamName: string): Promise<string[]> {
   const emails = cloudUsers.map((u) => u.email).filter(Boolean);
   if (emails.length) return emails;
   const team = await findTeamByName(teamName);
-  return team?.group_email ? [team.group_email] : [];
+  if (team?.group_email) return [team.group_email];
+  console.warn(
+    `[EMAIL] no "cloud"-role users and no group email for "${teamName}" — notification silently dropped`,
+  );
+  return [];
 }
 
 async function ownerEmail(ownerUserId: string): Promise<string | null> {
@@ -255,8 +262,16 @@ export async function notifyFormSubmitted(
 export async function notifyHandoffAcknowledged(
   d: Omit<HandoffAcknowledgedData, 'fromTeam'>,
   fromTeamName: string,
+  ownerUserId?: string,
 ): Promise<void> {
-  const to = await teamRecipients(fromTeamName);
+  const [teamTo, ownerMail] = await Promise.all([
+    teamRecipients(fromTeamName),
+    ownerUserId ? ownerEmail(ownerUserId) : Promise.resolve(null),
+  ]);
+  // The owner is always included — previously this went ONLY to fromTeamName,
+  // so an unpopulated team (see teamRecipients' warn above) meant nobody at
+  // all heard that their handoff was acknowledged.
+  const to = [...new Set([...teamTo, ...(ownerMail ? [ownerMail] : [])])];
   if (!to.length) return;
   const { subject, html } = handoffAcknowledgedEmail({ ...d, fromTeam: fromTeamName });
   await deliver(to, subject, html);
@@ -289,24 +304,38 @@ export async function notifyHandoffCompleted(
 
 // ─── Delivery status notifications ───────────────────────────────────────────
 
+/* Owner + the case's business-unit team (group email, else all members),
+   deduped. The case owner alone isn't enough now that any team member can
+   act on a unit's cases (see "My Unit's Cases") — everyone on the team needs
+   to see form status updates, not just whoever happens to be the owner. */
+async function ownerAndUnitTeamRecipients(ownerUserId: string, unit: BusinessUnit): Promise<string[]> {
+  const [owner, unitTeam] = await Promise.all([
+    ownerEmail(ownerUserId),
+    teamRecipients(getBusinessUnitTeam(unit)),
+  ]);
+  return [...new Set([...(owner ? [owner] : []), ...unitTeam])];
+}
+
 export async function notifyFormAcknowledged(
   d: FormAcknowledgedData,
   ownerUserId: string,
+  unit: BusinessUnit,
 ): Promise<void> {
-  const email = await ownerEmail(ownerUserId);
-  if (!email) return;
+  const to = await ownerAndUnitTeamRecipients(ownerUserId, unit);
+  if (!to.length) return;
   const { subject, html } = formAcknowledgedEmail(d);
-  await deliver(email, subject, html);
+  await deliver(to, subject, html);
 }
 
 export async function notifyFormCompleted(
   d: FormCompletedData,
   ownerUserId: string,
+  unit: BusinessUnit,
 ): Promise<void> {
-  const email = await ownerEmail(ownerUserId);
-  if (!email) return;
+  const to = await ownerAndUnitTeamRecipients(ownerUserId, unit);
+  if (!to.length) return;
   const { subject, html } = formCompletedEmail(d);
-  await deliver(email, subject, html);
+  await deliver(to, subject, html);
 }
 
 // ─── Test Order — Candidate Experience ───────────────────────────────────────

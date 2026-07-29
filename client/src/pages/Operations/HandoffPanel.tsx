@@ -94,6 +94,8 @@ export default function HandoffPanel() {
               </h2>
               <div className={s.detailMeta}>
                 <span className={s.cid}>{campaignMap[form.campaign_id] ?? form.campaign_id}</span>
+                {form.submitter_name && <> · Submitted by {form.submitter_name}</>}
+                {form.submitted_on && <> · {formatDate(form.submitted_on)}</>}
               </div>
             </div>
           </div>

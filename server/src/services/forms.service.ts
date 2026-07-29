@@ -123,6 +123,7 @@ export async function acknowledgeDelivery(id: string, acknowledgedBy: string): P
         campaignUuid: campaign.id,
       },
       campaign.owner_user_id,
+      campaign.unit,
     );
   }
 }
@@ -163,6 +164,7 @@ export async function markDelivered(
         evidence: evidence ?? null,
       },
       campaign.owner_user_id,
+      campaign.unit,
     );
   }
 }
@@ -279,6 +281,7 @@ export async function acknowledgeHandoff(handoffId: string, acknowledgedBy: stri
       formId: form.id,
     },
     form.operations_team,
+    campaign.owner_user_id,
   );
 }
 
