@@ -3,14 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
-import {
-  getDevSessionUser,
-  checkAuthHash,
-  getStoredAuth,
-  verifySession,
-  redirectToShell,
-  DEV_BYPASS,
-} from './auth/authBridge';
+import { getDevSessionUser, verifySession, redirectToShell } from './auth/authBridge';
 import './styles/global.css';
 
 /*
@@ -38,9 +31,7 @@ async function bridgeMsalAuthResponse() {
 
 async function boot() {
   const dev = await getDevSessionUser();
-  const hashAuth = dev ? null : await checkAuthHash();
-  const stored = dev ?? hashAuth ?? getStoredAuth();
-  const auth = stored ?? (DEV_BYPASS ? null : await verifySession());
+  const auth = dev ?? (await verifySession());
 
   if (!auth) {
     redirectToShell();

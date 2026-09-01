@@ -24,6 +24,11 @@ export function validateEnv() {
     if (isProduction) throw new Error(message);
     console.warn(message);
   }
+  if (!process.env.REVOKE_SECRET) {
+    const message = '[Config] REVOKE_SECRET not set — POST /api/auth/revoke will refuse all requests until it is';
+    if (isProduction) throw new Error(message);
+    console.warn(message);
+  }
   if (!process.env.GRAPH_SENDER_EMAIL) {
     console.warn(
       '[Config] GRAPH_SENDER_EMAIL not set — email notifications will be logged to console only',

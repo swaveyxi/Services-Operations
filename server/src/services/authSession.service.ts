@@ -1,8 +1,9 @@
 /*
  * Shared JWT verification + role-merge logic behind the ERP auth session
- * (see docs/Dragnet_ERP_Authentication.md and controllers/auth.controller.ts,
- * middlewares/verifyToken.ts). Split out so both the login-time session
- * establishment and the per-request auth gate use the exact same
+ * (see docs/ERP_Module-Tier_1.md and controllers/auth.controller.ts,
+ * middlewares/verifyToken.ts). Split out so both session establishment
+ * (GET /session — the ERP backend owns cookie issuance, this module only
+ * ever reads it) and the per-request auth gate use the exact same
  * verification path.
  */
 import jwt from 'jsonwebtoken';
@@ -71,8 +72,9 @@ function rolesFromClaims(payload: jwt.JwtPayload): string[] {
  * refreshed from the token every time this runs) with any locally-granted
  * platform roles (super_admin/operations_admin — preserved regardless of what
  * the token currently contains), and upserts the user record. Called once at
- * session establishment (POST /session), not on every request — it writes to
- * the DB, and per-request auth only needs a cheap read (see verifyToken.ts).
+ * session establishment (GET /session, on app boot), not on every request —
+ * it writes to the DB, and per-request auth only needs a cheap read (see
+ * verifyToken.ts).
  */
 export async function establishSession(token: string): Promise<{ user: UserRow; payload: jwt.JwtPayload }> {
   const payload = await verifyJwt(token);

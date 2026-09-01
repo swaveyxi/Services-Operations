@@ -1,12 +1,14 @@
 /*
- * ERP auth bridge (docs/Dragnet_ERP_Authentication.md) + a DEV_BYPASS short-circuit.
- * When VITE_DEV_BYPASS=true, the app skips ERP OAuth and reads the user from the
- * local server session (DB-backed). DEV_BYPASS is env-only — never a URL parameter.
+ * ERP auth bridge (docs/ERP_Module-Tier_1.md) + a DEV_BYPASS short-circuit.
+ * When VITE_DEV_BYPASS=true, the app skips the ERP redirect and reads the
+ * user from the local server session (DB-backed). DEV_BYPASS is env-only —
+ * never a URL parameter.
  *
- * The JWT itself is never held in JS — it's handed to POST /api/auth/session
- * once, which validates it and sets it as an HttpOnly cookie; every request
- * after that relies on the browser sending that cookie (`credentials: 'include'`
- * in services/api.ts), never on a token read/stored here.
+ * The ERP backend is the sole authority on the shared `erp_auth` cookie —
+ * it validates the MSAL token and sets the HttpOnly cookie itself, then
+ * redirects back here with no token in the URL. This app never sees or
+ * holds the JWT; it only ever asks the server to verify the cookie
+ * (`credentials: 'include'`, see services/api.ts) via GET /api/auth/session.
  */
 import type { UserInfo } from '@shared/types';
 
@@ -32,65 +34,22 @@ export async function getDevSessionUser(): Promise<UserInfo | null> {
   }
 }
 
-export async function checkAuthHash(): Promise<UserInfo | null> {
-  if (!window.location.hash.includes('token=')) return null;
-  const token = window.location.hash.split('token=')[1];
-  if (!token) return null;
-  window.history.replaceState(
-    null,
-    '',
-    window.location.pathname + window.location.search,
-  );
-
-  try {
-    const res = await fetch('/api/auth/session', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken: token }),
-    });
-    if (!res.ok) return null;
-    // The server's response is the validated, authoritative user info
-    // (roles merged with any locally-granted platform roles) — not a
-    // client-side JWT decode, which could never know about those.
-    const userInfo = (await res.json()) as UserInfo;
-    localStorage.setItem('erp_user', JSON.stringify(userInfo));
-    return userInfo;
-  } catch {
-    return null;
-  }
-}
-
-export function getStoredAuth(): UserInfo | null {
-  const raw = localStorage.getItem('erp_user');
-  if (!raw) return null;
-  try {
-    const info = JSON.parse(raw) as UserInfo;
-    if (info.expiresOn && Date.now() > info.expiresOn) {
-      localStorage.removeItem('erp_user');
-      return null;
-    }
-    return info;
-  } catch {
-    localStorage.removeItem('erp_user');
-    return null;
-  }
-}
-
+// Verifies the `erp_auth` cookie against the server on every boot — no
+// client-side caching. Caching this would risk missing a revoked/expired
+// session (see POST /api/auth/revoke) until some other request happened to
+// hit a 401.
 export async function verifySession(): Promise<UserInfo | null> {
   try {
     const res = await fetch('/api/auth/session', { credentials: 'include' });
     if (!res.ok) return null;
     const data = (await res.json()) as { user: { id?: string; name: string; email: string; roles: string[] } };
     if (!data?.user?.email) return null;
-    const userInfo: UserInfo = {
+    return {
       id: data.user.id,
       name: data.user.name,
       email: data.user.email,
       roles: data.user.roles,
     };
-    localStorage.setItem('erp_user', JSON.stringify(userInfo));
-    return userInfo;
   } catch {
     return null;
   }
@@ -102,7 +61,6 @@ export function redirectToShell(): void {
 }
 
 export function clearAuth(): void {
-  localStorage.removeItem('erp_user');
   fetch('/api/auth/session', {
     method: 'DELETE',
     credentials: 'include',

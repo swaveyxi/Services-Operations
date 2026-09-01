@@ -1,39 +1,16 @@
 import { Request, Response } from 'express';
-import { establishSession, verifyJwt, emailFromClaims, devBypassUser } from '../services/authSession.service';
-import { findUserByEmail } from '../models/users';
+import { establishSession, devBypassUser } from '../services/authSession.service';
+import { revokeUser } from '../services/revocation.service';
 
 const COOKIE_NAME = 'erp_auth';
 
-function cookieOptions(maxAgeMs: number) {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
-    maxAge: Math.max(maxAgeMs, 0),
-    path: '/',
-  };
-}
-
-// POST /api/auth/session — validates the ERP-issued JWT and starts a session.
-// Public: establishing a session can't require already having one.
-export async function createSession(req: Request, res: Response): Promise<void> {
-  const { accessToken } = req.body;
-  if (!accessToken) {
-    res.status(400).json({ error: 'No token provided' });
-    return;
-  }
-
-  try {
-    const { user, payload } = await establishSession(accessToken);
-    const expiresOn = ((payload.exp as number) ?? 0) * 1000;
-    res.cookie(COOKIE_NAME, accessToken, cookieOptions(expiresOn - Date.now()));
-    res.json({ id: user.id, name: user.name, email: user.email, roles: user.roles, expiresOn });
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-}
-
-// GET /api/auth/session — verifies the existing cookie (or the DEV_BYPASS user).
+// GET /api/auth/session — the ERP backend owns cookie issuance now (see
+// docs/ERP_Module-Tier_1.md); this module only ever reads the shared
+// `.dragnet.ng` cookie it sets, never mints one itself. This is also where
+// a first-seen user's local `users` row gets created/updated — the role
+// merge (org_roles claim vs. locally-granted platform roles) + upsert used
+// to run at POST-time session establishment; there's no POST anymore, so it
+// runs here instead, on the boot-time session check.
 export async function getSession(req: Request, res: Response): Promise<void> {
   if (process.env.DEV_BYPASS === 'true') {
     const user = await devBypassUser();
@@ -52,13 +29,7 @@ export async function getSession(req: Request, res: Response): Promise<void> {
   }
 
   try {
-    const payload = await verifyJwt(token);
-    const user = await findUserByEmail(emailFromClaims(payload));
-    if (!user) {
-      res.clearCookie(COOKIE_NAME);
-      res.status(401).json({ error: 'No session' });
-      return;
-    }
+    const { user } = await establishSession(token);
     res.json({ user: { id: user.id, name: user.name, email: user.email, roles: user.roles } });
   } catch {
     res.clearCookie(COOKIE_NAME);
@@ -71,4 +42,28 @@ export async function getSession(req: Request, res: Response): Promise<void> {
 export function deleteSession(_req: Request, res: Response): void {
   res.clearCookie(COOKIE_NAME);
   res.json({ message: 'Session ended.' });
+}
+
+// POST /api/auth/revoke — called by the ERP backend when this user's roles
+// change. Public: authenticated by REVOKE_SECRET, not a session, since it's a
+// server-to-server call. The next request from that user hits verifyToken's
+// consumeRevocation() check and gets forced back through the ERP.
+export function revokeSession(req: Request, res: Response): void {
+  if (!process.env.REVOKE_SECRET) {
+    res.status(500).json({ error: 'REVOKE_SECRET not configured' });
+    return;
+  }
+
+  const { email, secret } = req.body;
+  if (secret !== process.env.REVOKE_SECRET) {
+    res.status(403).json({ error: 'Invalid secret' });
+    return;
+  }
+  if (!email) {
+    res.status(400).json({ error: 'Email required' });
+    return;
+  }
+
+  revokeUser(String(email).trim().toLowerCase());
+  res.json({ revoked: true });
 }
