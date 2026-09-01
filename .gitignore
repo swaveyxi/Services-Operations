@@ -52,6 +52,7 @@ desktop.ini
 
 # Local & Dev files
 **/scripts/
+**/tests/
 **/seeds/
 **/.claude
 **/.codex
