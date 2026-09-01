@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import createError from 'http-errors';
 import jwt from 'jsonwebtoken';
 import { verifyJwt, emailFromClaims, devBypassUser } from '../services/authSession.service';
+import { consumeRevocation } from '../services/revocation.service';
 import { findUserByEmail } from '../models/users';
 
 const COOKIE_NAME = 'erp_auth';
@@ -9,7 +10,7 @@ const COOKIE_NAME = 'erp_auth';
 // Per-request auth gate. Only re-verifies the cookie's JWT signature/expiry
 // and does a cheap DB lookup by email — the role merge + upsert (org_roles
 // claim vs. locally-granted platform roles) happens once, at session
-// establishment (see controllers/auth.controller.ts's createSession), not on
+// establishment (see controllers/auth.controller.ts's getSession), not on
 // every request.
 export async function verifyToken(req: Request, res: Response, next: NextFunction): Promise<void> {
   // DEV_BYPASS: skip the cookie/JWT entirely, inject mock user from DB
@@ -27,6 +28,11 @@ export async function verifyToken(req: Request, res: Response, next: NextFunctio
     const payload = await verifyJwt(token);
     const email = emailFromClaims(payload);
     if (!email) throw createError(401, 'Token missing email claim.');
+
+    if (consumeRevocation(email)) {
+      res.clearCookie(COOKIE_NAME);
+      throw createError(401, 'Session revoked.');
+    }
 
     const user = await findUserByEmail(email);
     if (!user) throw createError(401, 'No session.');

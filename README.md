@@ -47,8 +47,9 @@ Migrations are never run automatically (not on server boot, not in CI/CD) — al
 
 ## Authentication in dev
 
-The app has no login page — it authenticates via a JWT hash handoff from the Dragnet ERP shell
-(`docs/Dragnet_ERP_Authentication.md`). To develop without running the ERP shell locally, set
+The app has no login page — it authenticates via a shared `.dragnet.ng` cookie that the Dragnet
+ERP backend sets after login (`docs/ERP_Module-Tier_1.md`); this module only ever reads it. To
+develop without running the ERP shell locally, set
 `VITE_DEV_BYPASS=true` and `DEV_BYPASS=true` in `.env` (plus `DEV_BYPASS_EMAIL` for which seeded
 user to mount as) — this is env-only and the server refuses to start with `DEV_BYPASS=true` while
 `NODE_ENV=production`.
