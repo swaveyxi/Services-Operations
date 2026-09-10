@@ -15,6 +15,13 @@
       "when": 1784853020323,
       "tag": "0001_tranquil_the_enforcers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1789038062008,
+      "tag": "0002_crazy_secret_warriors",
+      "breakpoints": true
     }
   ]
 }

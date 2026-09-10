@@ -30,6 +30,7 @@ export async function getCampaignByBusinessId(campaignId: string): Promise<Campa
 
 export type CreateCampaignInput = {
   unit: string;
+  name: string;
   client_id?: string | null;
   description?: string | null;
   revenue_items?: LineItem[];
@@ -39,6 +40,7 @@ export type CreateCampaignInput = {
 export async function createCampaign(input: CreateCampaignInput): Promise<Campaign> {
   const res = await api.post('/campaigns', {
     unit: input.unit,
+    name: input.name,
     client_id: input.client_id ?? null,
     description: input.description ?? null,
     revenue_items: input.revenue_items ?? [],

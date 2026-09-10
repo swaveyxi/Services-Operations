@@ -188,6 +188,10 @@ export default function Tracker() {
                 <span className='eyebrow'>Business Unit</span>
                 <span className={s.summaryVal}>{c.unit || '—'}</span>
               </div>
+              <div className={s.summaryItem}>
+                <span className='eyebrow'>Campaign Name</span>
+                <span className={s.summaryVal}>{c.name || '—'}</span>
+              </div>
             </div>
             <div className={s.summaryCol}>
               <div className={s.summaryItem}>
@@ -347,11 +351,12 @@ export default function Tracker() {
                 const title =
                   FORM_CATALOG_META[FORM_TITLE_TO_KEY[f.form_type]]?.title || f.form_type;
                 const activeHandoffs = f.handoffs.filter((h) => h.status !== 'Completed');
-                const handoffLabel = f.handoffs.length === 0
-                  ? null
-                  : activeHandoffs.length === 0
-                  ? 'Job Complete'
-                  : `Sent to ${activeHandoffs.map((h) => h.team).join(', ')}`;
+                const handoffLabel =
+                  f.handoffs.length === 0
+                    ? null
+                    : activeHandoffs.length === 0
+                      ? 'Job Complete'
+                      : `Sent to ${activeHandoffs.map((h) => h.team).join(', ')}`;
                 return (
                   <div key={f.id} className={s.formRow} onClick={() => setActiveForm(f)}>
                     <div>
@@ -503,14 +508,15 @@ export default function Tracker() {
                   Close
                 </button>
                 {FORM_TITLE_TO_KEY[activeForm.form_type] === 'test-order' &&
-                  activeForm.delivery_status !== 'Acknowledged' && activeForm.delivery_status !== 'Completed' && (
-                  <button
-                    className='btn btn-primary btn-sm'
-                    onClick={() => openSessionsEdit(activeForm)}
-                  >
-                    <i className='fa-solid fa-pen' aria-hidden='true' /> Edit Sessions
-                  </button>
-                )}
+                  activeForm.delivery_status !== 'Acknowledged' &&
+                  activeForm.delivery_status !== 'Completed' && (
+                    <button
+                      className='btn btn-primary btn-sm'
+                      onClick={() => openSessionsEdit(activeForm)}
+                    >
+                      <i className='fa-solid fa-pen' aria-hidden='true' /> Edit Sessions
+                    </button>
+                  )}
               </div>
             )
           }

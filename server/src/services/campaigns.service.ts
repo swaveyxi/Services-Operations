@@ -55,6 +55,7 @@ async function generateCampaignId(abbr: string, date: Date): Promise<string> {
 export type CreateCampaignInput = {
   client_id?: string | null;
   unit: CampaignRow['unit'];
+  name: string;
   description?: string | null;
   revenue_items?: RevenueItemInsert[];
   cost_items?: CostItemInsert[];
@@ -83,6 +84,7 @@ export async function createNewCampaign(
     client_id: input.client_id ?? null,
     owner_user_id: owner_id,
     unit: input.unit,
+    name: input.name,
     description: input.description ?? null,
     campaign_status: 'Draft',
   });

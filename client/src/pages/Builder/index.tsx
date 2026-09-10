@@ -25,6 +25,7 @@ export default function Builder() {
   const [unit, setUnit] = useState('');
   const [catalog, setCatalog] = useState<ServiceCatalog | null>(null);
 
+  const [campaignName, setCampaignName] = useState('');
   const [clientName, setClientName] = useState('');
   const [contactId, setContactId] = useState('');
   const [isExisting, setIsExisting] = useState(false);
@@ -135,6 +136,7 @@ export default function Builder() {
     const e: Record<string, string> = {};
     if (!unit) e.unit = 'Select a business unit';
     if (!clientName.trim()) e.client = 'Client is required';
+    if (!campaignName.trim()) e.name = 'Campaign name is required';
     if (!abbreviation.trim()) e.abbreviation = 'Abbreviation is required';
     if (revenueItems.length === 0) e.revenue = 'Add at least one revenue item';
     setErrors(e);
@@ -154,6 +156,7 @@ export default function Builder() {
     const campaign = await call(() =>
       createCampaign({
         unit,
+        name: campaignName.trim(),
         client_id: clientIdForCase || null,
         description: description.trim() || null,
         revenue_items: revenueItems,
@@ -175,6 +178,14 @@ export default function Builder() {
       </div>
 
       <div className='card card-pad'>
+        <div className={s.formIntro}>
+          <h2 className={s.formIntroTitle}>Case Details</h2>
+          <p className={s.formIntroDesc}>Who this case is for, what's being billed, and why.</p>
+        </div>
+
+        <div className='eyebrow' style={{ marginBottom: 'var(--space-3)' }}>
+          Unit & Client
+        </div>
         <div className='field'>
           <label className='field-label'>
             Business Unit<span className='field-req'>*</span>
@@ -230,6 +241,20 @@ export default function Builder() {
 
         <div className='field'>
           <label className='field-label'>
+            Campaign Name<span className='field-req'>*</span>
+          </label>
+          <input
+            className='input'
+            placeholder='e.g. MTN Scholarships 2026'
+            maxLength={255}
+            value={campaignName}
+            onChange={(e) => setCampaignName(e.target.value)}
+          />
+          <span className='field-error'>{errors.name}</span>
+        </div>
+
+        <div className='field'>
+          <label className='field-label'>
             Client Abbreviation<span className='field-req'>*</span>
           </label>
           <input
@@ -248,7 +273,11 @@ export default function Builder() {
         </div>
 
         {unit && (
-          <>
+          <div className={s.sectionDivider}>
+            <div className='eyebrow' style={{ marginBottom: 'var(--space-3)' }}>
+              Services & Commercials
+            </div>
+
             <div className='field'>
               <label className='field-label'>
                 Revenue Items<span className='field-req'>*</span>
@@ -337,19 +366,25 @@ export default function Builder() {
                 Dashed chips are auto-matched from revenue selections.
               </span>
             </div>
-          </>
+          </div>
         )}
 
-        <div className='field'>
-          <label className='field-label'>Description</label>
-          <textarea
-            className='textarea'
-            rows={3}
-            placeholder='Brief overview of the scope or engagement…'
-            maxLength={1000}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+        <div className={s.sectionDivider}>
+          <div className='eyebrow' style={{ marginBottom: 'var(--space-3)' }}>
+            Case Justification
+          </div>
+
+          <div className='field'>
+            <label className='field-label'>Description</label>
+            <textarea
+              className='textarea'
+              rows={3}
+              placeholder='Brief overview of the scope or engagement…'
+              maxLength={1000}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className={s.actions}>

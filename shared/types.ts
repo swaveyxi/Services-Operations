@@ -26,6 +26,7 @@ export type Campaign = {
   owner_user_id: string;
   owner_name?: string | null;
   unit: string;
+  name: string | null;
   description: string | null;
   campaign_status: string;
   approval_status: string | null;

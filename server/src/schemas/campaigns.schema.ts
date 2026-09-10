@@ -16,6 +16,7 @@ const LineItemSchema = z.object({
 export const CreateCampaignSchema = z.object({
   client_id: z.string().uuid().optional().nullable(),
   unit: UnitSchema,
+  name: z.string().min(1).max(255),
   description: z.string().max(1000).optional().nullable(),
   revenue_items: z.array(LineItemSchema).optional(),
   cost_items: z.array(LineItemSchema).optional(),
