@@ -42,6 +42,7 @@ export default function WorkplanReview() {
   const [ownerName, setOwnerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [saving, call] = useServiceCall();
 
   const myTeams = useUserTeams();
@@ -49,20 +50,26 @@ export default function WorkplanReview() {
 
   useEffect(() => {
     let alive = true;
-    getCampaign(id).then((c) => {
-      if (!alive) return;
-      setCampaign(c);
-      if (!c) { setLoading(false); return; }
-      listUsers().then((users) => {
+    getCampaign(id)
+      .then((c) => {
         if (!alive) return;
-        setOwnerName(users.find((u) => u.id === c.owner_user_id)?.name ?? '');
-      });
-      listWorkplansForCampaign(c.id).then((wps) => {
+        setCampaign(c);
+        if (!c) { setLoading(false); return; }
+        listUsers().then((users) => {
+          if (!alive) return;
+          setOwnerName(users.find((u) => u.id === c.owner_user_id)?.name ?? '');
+        });
+        listWorkplansForCampaign(c.id).then((wps) => {
+          if (!alive) return;
+          setRows(hydrate(wps));
+          setLoading(false);
+        });
+      })
+      .catch((err) => {
         if (!alive) return;
-        setRows(hydrate(wps));
+        setLoadError(err instanceof Error ? err.message : 'Case not found.');
         setLoading(false);
       });
-    });
     return () => { alive = false; };
   }, [id]);
 
@@ -169,7 +176,7 @@ export default function WorkplanReview() {
   }
 
   if (loading) return <div className='loading-state'>Loading workplan…</div>;
-  if (!campaign) return <div className='error-state'>Case not found.</div>;
+  if (!campaign) return <div className='error-state'>{loadError || 'Case not found.'}</div>;
   if (!isOpsReviewer)
     return <div className='empty-state'>You don't have access to review this workplan.</div>;
 

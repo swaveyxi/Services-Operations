@@ -61,7 +61,11 @@ export async function createConfiguredWorkplan(
 
 // ─── Submit / Resubmit ────────────────────────────────────────────────────────
 
-export async function submitWorkplan(id: string, actorId: string): Promise<void> {
+export async function submitWorkplan(
+  id: string,
+  actorId: string,
+  actorRoles: string[],
+): Promise<void> {
   const wp = await findWorkplanById(id);
   if (!wp) throw createError(404, 'Workplan not found.');
   await assertCampaignActionable(wp.campaign_id);
@@ -83,7 +87,7 @@ export async function submitWorkplan(id: string, actorId: string): Promise<void>
   const campaign = await findCampaignById(wp.campaign_id);
   if (campaign && campaign.campaign_status === 'Workplan') {
     await updateCampaign(wp.campaign_id, { campaign_status: 'Profitability', updated_by: actorId });
-    await submitForApproval(wp.campaign_id, actorId);
+    await submitForApproval(wp.campaign_id, actorId, actorRoles);
   }
 
   const opsTeamName = getOpsTeam(wp.template_name);

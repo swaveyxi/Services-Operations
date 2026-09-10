@@ -116,7 +116,30 @@ export async function createNewCampaign(
 
 // ─── Read ─────────────────────────────────────────────────────────────────────
 
-export async function getCampaignDetail(id: string): Promise<
+// Same visibility rule already enforced by the list endpoints (listUnitCampaigns'
+// business-unit-team check, and the scope=all role check in the campaigns
+// controller) — applied here too. Before this, GET/PATCH/submit on a single
+// campaign by id had NO authorization check at all: any authenticated user who
+// knew or guessed a campaign's UUID (e.g. from an email link) could view or
+// edit any case, not just their own or their unit's.
+const ORG_WIDE_VIEW_ROLES = ['operations', 'operations_admin', 'super_admin', 'md'];
+
+export async function assertCampaignVisible(
+  campaign: CampaignRow,
+  user: { id: string; roles: string[] },
+): Promise<void> {
+  if (campaign.owner_user_id === user.id) return;
+  if (ORG_WIDE_VIEW_ROLES.some((r) => user.roles.includes(r))) return;
+  const teams = await findTeamsByUser(user.id);
+  const units = getBusinessUnitsForTeams(teams.map((t) => t.team_name));
+  if (units.includes(campaign.unit)) return;
+  throw createError(403, 'You do not have access to this case.');
+}
+
+export async function getCampaignDetail(
+  id: string,
+  user: { id: string; roles: string[] },
+): Promise<
   CampaignRow & {
     revenue_items: Awaited<ReturnType<typeof getRevenueItems>>;
     cost_items: Awaited<ReturnType<typeof getCostItems>>;
@@ -126,6 +149,7 @@ export async function getCampaignDetail(id: string): Promise<
 > {
   const campaign = await findCampaignById(id);
   if (!campaign) throw createError(404, 'Campaign not found.');
+  await assertCampaignVisible(campaign, user);
 
   const [revenue_items, cost_items, owner] = await Promise.all([
     getRevenueItems(id),
@@ -231,8 +255,10 @@ export async function updateCommercials(
   revenueItems: RevenueItemInsert[],
   costItems: CostItemInsert[],
   actorId: string,
+  actorRoles: string[],
 ): Promise<ProfitabilitySummary> {
   const campaign = await assertCampaignActionable(id);
+  await assertCampaignVisible(campaign, { id: actorId, roles: actorRoles });
   if (campaign.campaign_status === 'Active' || campaign.campaign_status === 'Closed') {
     throw createError(409, 'Commercials cannot be edited once the campaign is Active or Closed.');
   }
@@ -249,8 +275,13 @@ export async function updateCommercials(
 
 // ─── Approval flow ────────────────────────────────────────────────────────────
 
-export async function submitForApproval(id: string, actorId: string): Promise<void> {
+export async function submitForApproval(
+  id: string,
+  actorId: string,
+  actorRoles: string[],
+): Promise<void> {
   const campaign = await assertCampaignActionable(id);
+  await assertCampaignVisible(campaign, { id: actorId, roles: actorRoles });
   if (campaign.campaign_status !== 'Profitability') {
     throw createError(
       409,

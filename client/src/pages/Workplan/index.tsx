@@ -42,26 +42,33 @@ export default function Workplan() {
   const [loading, setLoading] = useState(true);
   const [saving, call] = useServiceCall();
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     let active = true;
-    getCampaign(id).then((camp) => {
-      if (!active) return;
-      setCampaign(camp);
-      if (!camp) {
-        setLoading(false);
-        return;
-      }
-      Promise.all([
-        getTemplates(),
-        listWorkplansForCampaign(camp.id),
-      ]).then(([tpls, existing]) => {
+    getCampaign(id)
+      .then((camp) => {
         if (!active) return;
-        setTemplates(tpls);
-        setSelected(hydrate(existing));
+        setCampaign(camp);
+        if (!camp) {
+          setLoading(false);
+          return;
+        }
+        Promise.all([
+          getTemplates(),
+          listWorkplansForCampaign(camp.id),
+        ]).then(([tpls, existing]) => {
+          if (!active) return;
+          setTemplates(tpls);
+          setSelected(hydrate(existing));
+          setLoading(false);
+        });
+      })
+      .catch((err) => {
+        if (!active) return;
+        setLoadError(err instanceof Error ? err.message : 'Case not found.');
         setLoading(false);
       });
-    });
     return () => {
       active = false;
     };
@@ -190,7 +197,7 @@ export default function Workplan() {
   }
 
   if (loading) return <div className='loading-state'>Loading workplan…</div>;
-  if (!campaign) return <div className='error-state'>Case not found.</div>;
+  if (!campaign) return <div className='error-state'>{loadError || 'Case not found.'}</div>;
   if (campaign.is_archived) {
     return (
       <div className='error-state'>

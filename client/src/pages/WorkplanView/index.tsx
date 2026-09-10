@@ -45,20 +45,27 @@ export default function WorkplanView() {
   const [editDates, setEditDates] = useState<Record<string, ActEdit[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [saving, call] = useServiceCall();
 
   useEffect(() => {
     let alive = true;
-    getCampaign(id).then((c) => {
-      if (!alive) return;
-      setCampaign(c);
-      if (!c) { setLoading(false); return; }
-      listWorkplansForCampaign(c.id).then((wps) => {
+    getCampaign(id)
+      .then((c) => {
         if (!alive) return;
-        setWorkplans(hydrate(wps));
+        setCampaign(c);
+        if (!c) { setLoading(false); return; }
+        listWorkplansForCampaign(c.id).then((wps) => {
+          if (!alive) return;
+          setWorkplans(hydrate(wps));
+          setLoading(false);
+        });
+      })
+      .catch((err) => {
+        if (!alive) return;
+        setLoadError(err instanceof Error ? err.message : 'Case not found.');
         setLoading(false);
       });
-    });
     return () => { alive = false; };
   }, [id]);
 
@@ -161,7 +168,7 @@ export default function WorkplanView() {
   }
 
   if (loading) return <div className='loading-state'>Loading workplan…</div>;
-  if (!campaign) return <div className='error-state'>Case not found.</div>;
+  if (!campaign) return <div className='error-state'>{loadError || 'Case not found.'}</div>;
   if (workplans.length === 0)
     return <div className='empty-state'>No submitted workplans for this case.</div>;
 

@@ -50,23 +50,30 @@ export default function Tracker() {
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     let active = true;
-    getCampaign(id).then((camp) => {
-      if (!active) return;
-      setC(camp);
-      setLoading(false);
-      if (camp) {
-        listWorkplansForCampaign(camp.id).then(setWorkplans);
-        listFormsForCampaign(camp.id).then(setForms);
-        if (camp.client_id) {
-          getClientById(camp.client_id).then((cl) => {
-            if (active) setClientName(cl?.display_name ?? null);
-          });
+    getCampaign(id)
+      .then((camp) => {
+        if (!active) return;
+        setC(camp);
+        setLoading(false);
+        if (camp) {
+          listWorkplansForCampaign(camp.id).then(setWorkplans);
+          listFormsForCampaign(camp.id).then(setForms);
+          if (camp.client_id) {
+            getClientById(camp.client_id).then((cl) => {
+              if (active) setClientName(cl?.display_name ?? null);
+            });
+          }
         }
-      }
-    });
+      })
+      .catch((err) => {
+        if (!active) return;
+        setLoadError(err instanceof Error ? err.message : 'Case not found.');
+        setLoading(false);
+      });
     return () => {
       active = false;
     };
@@ -183,7 +190,7 @@ export default function Tracker() {
   if (!c)
     return (
       <div className='error-state'>
-        Case not found.{' '}
+        {loadError || 'Case not found.'}{' '}
         <button className='btn btn-secondary' onClick={() => navigate('/')}>
           Back to Cases
         </button>

@@ -13,6 +13,7 @@ import {
   unarchiveCampaign,
   deleteCampaign,
   assertCampaignActionable,
+  assertCampaignVisible,
 } from '../services/campaigns.service';
 import { updateCampaign, findCampaignById } from '../models/campaigns';
 import { findFormsByCampaign } from '../models/forms';
@@ -66,7 +67,7 @@ export async function listArchived(req: Request, res: Response): Promise<void> {
 
 // GET /api/campaigns/:id
 export async function getCampaign(req: Request, res: Response): Promise<void> {
-  const campaign = await getCampaignDetail(String(req.params.id));
+  const campaign = await getCampaignDetail(String(req.params.id), req.user!);
   res.json(campaign);
 }
 
@@ -91,19 +92,21 @@ export async function patchCampaign(req: Request, res: Response): Promise<void> 
       revenue_items ?? [],
       cost_items ?? [],
       req.user!.id,
+      req.user!.roles,
     );
     res.json({ profitability });
     return;
   }
 
-  await assertCampaignActionable(id);
+  const campaign = await assertCampaignActionable(id);
+  await assertCampaignVisible(campaign, req.user!);
   await updateCampaign(id, { client_id, description, updated_by: req.user!.id });
   res.json({ message: 'Campaign updated.' });
 }
 
 // POST /api/campaigns/:id/submit
 export async function submitCampaign(req: Request, res: Response): Promise<void> {
-  await submitForApproval(String(req.params.id), req.user!.id);
+  await submitForApproval(String(req.params.id), req.user!.id, req.user!.roles);
   res.json({ message: 'Campaign submitted for approval.' });
 }
 
@@ -142,6 +145,7 @@ export async function removeCampaign(req: Request, res: Response): Promise<void>
 export async function getCampaignWorkplans(req: Request, res: Response): Promise<void> {
   const campaign = await findCampaignById(String(req.params.id));
   if (!campaign) throw createError(404, 'Campaign not found.');
+  await assertCampaignVisible(campaign, req.user!);
   const workplans = await findWorkplansByCampaign(campaign.id);
   res.json(workplans);
 }
@@ -150,6 +154,7 @@ export async function getCampaignWorkplans(req: Request, res: Response): Promise
 export async function getCampaignForms(req: Request, res: Response): Promise<void> {
   const campaign = await findCampaignById(String(req.params.id));
   if (!campaign) throw createError(404, 'Campaign not found.');
+  await assertCampaignVisible(campaign, req.user!);
   const forms = await findFormsByCampaign(campaign.id);
   res.json(forms);
 }

@@ -41,7 +41,7 @@ export async function patchWorkplan(req: Request, res: Response): Promise<void> 
   const { action, activities, ops_start_date, ops_end_date, template_name } = req.body;
 
   if (action === 'submit') {
-    await submitWorkplan(id, req.user!.id);
+    await submitWorkplan(id, req.user!.id, req.user!.roles);
     res.json({ message: 'Workplan submitted.' });
     return;
   }

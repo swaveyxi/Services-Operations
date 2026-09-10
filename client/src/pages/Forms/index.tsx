@@ -35,9 +35,12 @@ export default function Forms() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, call] = useServiceCall();
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    getCampaign(id).then(setCampaign);
+    getCampaign(id)
+      .then(setCampaign)
+      .catch((err) => setLoadError(err instanceof Error ? err.message : 'Case not found.'));
   }, [id]);
 
   const fields = useMemo(() => (selectedKey ? FORM_FIELDS[selectedKey] : []), [selectedKey]);
@@ -99,6 +102,17 @@ export default function Forms() {
       setSelectedKey('');
       setValues({});
     }
+  }
+
+  if (loadError) {
+    return (
+      <div className='error-state'>
+        {loadError}{' '}
+        <button className='btn btn-secondary' onClick={() => navigate('/')}>
+          Back to Cases
+        </button>
+      </div>
+    );
   }
 
   if (campaign?.is_archived) {

@@ -1,5 +1,5 @@
 import type { Campaign, LineItem } from '@shared/types';
-import { api } from './api';
+import { api, ApiError } from './api';
 
 export async function listCampaigns(): Promise<Campaign[]> {
   const res = await api.get('/campaigns?scope=all');
@@ -17,9 +17,15 @@ export async function listUnitCampaigns(): Promise<Campaign[]> {
 }
 
 export async function getCampaign(id: string): Promise<Campaign | null> {
-  const res = await api.get(`/campaigns/${id}`).catch(() => null);
-  if (!res) return null;
-  return res.json();
+  try {
+    const res = await api.get(`/campaigns/${id}`);
+    return await res.json();
+  } catch (err) {
+    // Forbidden is a real, distinct reason — surface it instead of collapsing
+    // it into the same generic "not found" state as an actually-missing case.
+    if (err instanceof ApiError && err.status === 403) throw err;
+    return null;
+  }
 }
 
 export async function getCampaignByBusinessId(campaignId: string): Promise<Campaign | null> {
