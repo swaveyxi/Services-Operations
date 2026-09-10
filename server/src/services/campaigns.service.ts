@@ -23,7 +23,13 @@ import {
 } from '../models/campaigns';
 import { findClientById } from '../models/clients';
 import { calcProfitability, type ProfitabilitySummary } from './profitability.service';
-import { notifyCampaignApproved, notifyCampaignRejected, notifyMDPendingApproval } from './email.service';
+import {
+  notifyCampaignApproved,
+  notifyCampaignRejected,
+  notifyCampaignArchived,
+  notifyCampaignDeleted,
+  notifyMDPendingApproval,
+} from './email.service';
 import { findUserById, findUsersByIds } from '../models/users';
 import { findTeamsByUser } from '../models/teams';
 import { getBusinessUnitsForTeams } from '../../../shared/constants';
@@ -33,8 +39,18 @@ import { getBusinessUnitsForTeams } from '../../../shared/constants';
 // campaign for the same client+month and starts a parallel numbering sequence
 // under the abbreviated form (e.g. "CHEVRON/JUL/2026") instead of continuing it.
 const MONTHS = [
-  'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-  'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
+  'JANUARY',
+  'FEBRUARY',
+  'MARCH',
+  'APRIL',
+  'MAY',
+  'JUNE',
+  'JULY',
+  'AUGUST',
+  'SEPTEMBER',
+  'OCTOBER',
+  'NOVEMBER',
+  'DECEMBER',
 ];
 
 // ─── Campaign ID generation ───────────────────────────────────────────────────
@@ -73,7 +89,9 @@ export async function createNewCampaign(
     // Defensive: strip whitespace even though the abbreviation field itself
     // is now constrained — the display_name-slice fallback below isn't, and
     // could still land mid-word (e.g. "AB C Ltd".slice(0, 6) -> "AB C L").
-    abbr = (client.abbreviation?.trim() || client.display_name.slice(0, 6)).toUpperCase().replace(/\s+/g, '');
+    abbr = (client.abbreviation?.trim() || client.display_name.slice(0, 6))
+      .toUpperCase()
+      .replace(/\s+/g, '');
   }
 
   const campaignId = await generateCampaignId(abbr, new Date());
@@ -124,10 +142,12 @@ export async function getCampaignDetail(id: string): Promise<
   };
 }
 
-function profFromTotals(totals: { total_revenue: number; total_cost: number }): ProfitabilitySummary {
+function profFromTotals(totals: {
+  total_revenue: number;
+  total_cost: number;
+}): ProfitabilitySummary {
   const gross_profit = totals.total_revenue - totals.total_cost;
-  const profit_percent =
-    totals.total_revenue > 0 ? (gross_profit / totals.total_revenue) * 100 : 0;
+  const profit_percent = totals.total_revenue > 0 ? (gross_profit / totals.total_revenue) * 100 : 0;
   return { ...totals, gross_profit, profit_percent };
 }
 
@@ -232,12 +252,18 @@ export async function updateCommercials(
 export async function submitForApproval(id: string, actorId: string): Promise<void> {
   const campaign = await assertCampaignActionable(id);
   if (campaign.campaign_status !== 'Profitability') {
-    throw createError(409, 'Campaign must be in Profitability stage before submitting for approval.');
+    throw createError(
+      409,
+      'Campaign must be in Profitability stage before submitting for approval.',
+    );
   }
 
   const [revenueItems, costItems] = await Promise.all([getRevenueItems(id), getCostItems(id)]);
   if (calcProfitability(revenueItems, costItems).total_revenue <= 0) {
-    throw createError(409, 'Cannot submit for approval — no revenue commercials have been configured for this case.');
+    throw createError(
+      409,
+      'Cannot submit for approval — no revenue commercials have been configured for this case.',
+    );
   }
 
   await updateCampaign(id, { approval_status: 'Pending', updated_by: actorId });
@@ -320,7 +346,12 @@ export async function approveCampaign(
     updated_by: actorId,
   });
 
-  const data = { ...(await buildCaseReportData(campaign)), approvedBy, approverComments: note, auto: false };
+  const data = {
+    ...(await buildCaseReportData(campaign)),
+    approvedBy,
+    approverComments: note,
+    auto: false,
+  };
   await notifyCampaignApproved(data, campaign.owner_user_id);
 }
 
@@ -335,7 +366,12 @@ export async function rejectCampaign(
     throw createError(409, 'Campaign is not pending approval.');
   }
 
+  // Rejection closes the case — re-triggering approval after a rejection isn't
+  // scoped yet, so treat it the same as the legacy-migrated "rejected" cases
+  // (campaign_status: 'Closed', displayed as "Inactive") rather than leaving it
+  // sitting in Profitability implying a resubmit path that doesn't exist.
   await updateCampaign(id, {
+    campaign_status: 'Closed',
     approval_status: 'Rejected',
     approved_by: rejectedBy,
     approval_note: note,
@@ -356,7 +392,28 @@ export async function listArchivedCampaigns(
   return rows.map((r) => ({ ...r, profitability: profFromTotals(profMap.get(r.id)!) }));
 }
 
-export async function archiveCampaign(id: string, actorId: string): Promise<void> {
+// Shared by archive/delete notifications — lighter than buildCaseReportData
+// (no revenue/cost breakdown needed for a lifecycle notice).
+async function buildLifecycleEmailData(campaign: CampaignRow) {
+  const [owner, client] = await Promise.all([
+    findUserById(campaign.owner_user_id),
+    campaign.client_id ? findClientById(campaign.client_id) : null,
+  ]);
+  return {
+    campaignDisplayId: campaign.campaign_id,
+    campaignUuid: campaign.id,
+    campaignName: campaign.name ?? 'N/A',
+    unit: campaign.unit,
+    clientName: client?.display_name ?? 'N/A',
+    ownerName: owner?.name ?? 'Case Owner',
+  };
+}
+
+export async function archiveCampaign(
+  id: string,
+  actorId: string,
+  actorName: string,
+): Promise<void> {
   const campaign = await findCampaignById(id);
   if (!campaign) throw createError(404, 'Campaign not found.');
   if (campaign.owner_user_id !== actorId) {
@@ -365,6 +422,9 @@ export async function archiveCampaign(id: string, actorId: string): Promise<void
   if (campaign.is_archived) throw createError(409, 'Case is already archived.');
 
   await updateCampaign(id, { is_archived: true, updated_by: actorId });
+
+  const data = { ...(await buildLifecycleEmailData(campaign)), archivedBy: actorName };
+  await notifyCampaignArchived(data, campaign.owner_user_id);
 }
 
 export async function unarchiveCampaign(id: string, actorId: string): Promise<void> {
@@ -381,12 +441,23 @@ export async function unarchiveCampaign(id: string, actorId: string): Promise<vo
 // Irreversible from the app's perspective: the row itself is never dropped
 // (compliance/forensics only), but every read path filters is_deleted out, so
 // nothing here — or anything hanging off this campaign_id — is reachable again.
-export async function deleteCampaign(id: string, actorId: string): Promise<void> {
+export async function deleteCampaign(
+  id: string,
+  actorId: string,
+  actorName: string,
+): Promise<void> {
   const campaign = await findCampaignById(id);
   if (!campaign) throw createError(404, 'Campaign not found.');
   if (campaign.owner_user_id !== actorId) {
     throw createError(403, 'Only the case owner can delete this case.');
   }
 
+  // Build the notification data before the row is marked deleted — every read
+  // path (including findCampaignById above) starts filtering is_deleted rows
+  // out immediately after this, so there's no window to look it back up.
+  const data = { ...(await buildLifecycleEmailData(campaign)), deletedBy: actorName };
+
   await updateCampaign(id, { is_deleted: true, updated_by: actorId });
+
+  await notifyCampaignDeleted(data, campaign.owner_user_id);
 }

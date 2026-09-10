@@ -401,6 +401,55 @@ export function campaignRejectedEmail(d: CampaignRejectedData) {
   };
 }
 
+export type CampaignArchivedData = {
+  campaignDisplayId: string;
+  campaignUuid: string;
+  campaignName: string;
+  unit: BusinessUnit;
+  clientName: string;
+  ownerName: string;
+  archivedBy: string;
+};
+
+export function campaignArchivedEmail(d: CampaignArchivedData) {
+  return {
+    subject: `Case Archived — ${d.campaignDisplayId}`,
+    html: layout(`
+      <h2 style="margin:0 0 14px;font-size:20px;color:#0f1c2e;font-weight:700;">Case Archived</h2>
+      <p style="margin:0;">This case has been archived and is no longer active. No further action can be taken on it while archived — it can be restored at any time by the case owner.</p>
+      ${caseTag(d.campaignDisplayId)}
+      <p style="margin:14px 0 0;font-size:14px;color:#444;"><strong>Business Unit:</strong> ${d.unit}</p>
+      <p style="margin:5px 0 0;font-size:14px;color:#444;"><strong>Client:</strong> ${d.clientName}</p>
+      <p style="margin:5px 0 0;font-size:14px;color:#444;"><strong>Case Owner:</strong> ${d.ownerName}</p>
+      <p style="margin:14px 0 0;font-size:14px;color:#444;"><strong>Archived by:</strong> ${d.archivedBy}</p>
+    `),
+  };
+}
+
+export type CampaignDeletedData = {
+  campaignDisplayId: string;
+  campaignUuid: string;
+  unit: BusinessUnit;
+  clientName: string;
+  ownerName: string;
+  deletedBy: string;
+};
+
+export function campaignDeletedEmail(d: CampaignDeletedData) {
+  return {
+    subject: `Case Deleted — ${d.campaignDisplayId}`,
+    html: layout(`
+      <h2 style="margin:0 0 14px;font-size:20px;color:#0f1c2e;font-weight:700;">Case Deleted</h2>
+      <p style="margin:0;">This case has been permanently deleted and is no longer active. No further action can be taken on it — this cannot be undone.</p>
+      ${caseTag(d.campaignDisplayId)}
+      <p style="margin:14px 0 0;font-size:14px;color:#444;"><strong>Business Unit:</strong> ${d.unit}</p>
+      <p style="margin:5px 0 0;font-size:14px;color:#444;"><strong>Client:</strong> ${d.clientName}</p>
+      <p style="margin:5px 0 0;font-size:14px;color:#444;"><strong>Case Owner:</strong> ${d.ownerName}</p>
+      <p style="margin:14px 0 0;font-size:14px;color:#444;"><strong>Deleted by:</strong> ${d.deletedBy}</p>
+    `),
+  };
+}
+
 // ─── Form notifications ───────────────────────────────────────────────────────
 
 export type FormSubmittedData = {

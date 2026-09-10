@@ -122,7 +122,7 @@ export async function closeCampaign(req: Request, res: Response): Promise<void> 
 
 // POST /api/campaigns/:id/archive
 export async function archive(req: Request, res: Response): Promise<void> {
-  await archiveCampaign(String(req.params.id), req.user!.id);
+  await archiveCampaign(String(req.params.id), req.user!.id, req.user!.name);
   res.json({ message: 'Case archived.' });
 }
 
@@ -134,7 +134,7 @@ export async function unarchive(req: Request, res: Response): Promise<void> {
 
 // DELETE /api/campaigns/:id
 export async function removeCampaign(req: Request, res: Response): Promise<void> {
-  await deleteCampaign(String(req.params.id), req.user!.id);
+  await deleteCampaign(String(req.params.id), req.user!.id, req.user!.name);
   res.json({ message: 'Case deleted.' });
 }
 

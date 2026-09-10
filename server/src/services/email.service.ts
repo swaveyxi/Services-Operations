@@ -15,6 +15,8 @@ import {
   workplanAmendedReminderEmail,
   campaignApprovedEmail,
   campaignRejectedEmail,
+  campaignArchivedEmail,
+  campaignDeletedEmail,
   formSubmittedEmail,
   handoffSentEmail,
   handoffAcknowledgedEmail,
@@ -35,6 +37,8 @@ import {
   type WorkplanAmendedReminderData,
   type CampaignApprovedData,
   type CampaignRejectedData,
+  type CampaignArchivedData,
+  type CampaignDeletedData,
   type FormSubmittedData,
   type HandoffSentData,
   type HandoffAcknowledgedData,
@@ -244,6 +248,26 @@ export async function notifyCampaignRejected(
   const to = await fullCaseReportRecipients(ownerUserId, d.unit);
   if (!to.length) return;
   const { subject, html } = campaignRejectedEmail(d);
+  await deliver(to, subject, html);
+}
+
+export async function notifyCampaignArchived(
+  d: CampaignArchivedData,
+  ownerUserId: string,
+): Promise<void> {
+  const to = await fullCaseReportRecipients(ownerUserId, d.unit);
+  if (!to.length) return;
+  const { subject, html } = campaignArchivedEmail(d);
+  await deliver(to, subject, html);
+}
+
+export async function notifyCampaignDeleted(
+  d: CampaignDeletedData,
+  ownerUserId: string,
+): Promise<void> {
+  const to = await fullCaseReportRecipients(ownerUserId, d.unit);
+  if (!to.length) return;
+  const { subject, html } = campaignDeletedEmail(d);
   await deliver(to, subject, html);
 }
 

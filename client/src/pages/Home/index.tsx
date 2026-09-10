@@ -34,10 +34,7 @@ function CaseRow({
       <div>
         <div className={s.idLine}>
           <span className={s.cid}>{c.campaign_id}</span>
-          <StatusBadge
-            kind='campaign'
-            value={toCampaignDisplayStatus(c.campaign_status, c.approval_status)}
-          />
+          <StatusBadge kind='campaign' value={toCampaignDisplayStatus(c.campaign_status)} />
         </div>
         <div className={s.client}>
           {clientName || (!c.owner_name && '—')}
@@ -127,8 +124,7 @@ export default function Home() {
     const needle = q.toLowerCase().trim();
     return cases.filter((c) => {
       const matchesQ = !needle || c.campaign_id.toLowerCase().includes(needle);
-      const matchesS =
-        !status || ciEq(toCampaignDisplayStatus(c.campaign_status, c.approval_status), status);
+      const matchesS = !status || ciEq(toCampaignDisplayStatus(c.campaign_status), status);
       const matchesBu = !bu || c.unit === bu;
       return matchesQ && matchesS && matchesBu;
     });
@@ -138,9 +134,7 @@ export default function Home() {
     const needle = qUnit.toLowerCase().trim();
     return unitCases.filter((c) => {
       const matchesQ = !needle || c.campaign_id.toLowerCase().includes(needle);
-      const matchesS =
-        !statusUnit ||
-        ciEq(toCampaignDisplayStatus(c.campaign_status, c.approval_status), statusUnit);
+      const matchesS = !statusUnit || ciEq(toCampaignDisplayStatus(c.campaign_status), statusUnit);
       const matchesBu = !buUnit || c.unit === buUnit;
       return matchesQ && matchesS && matchesBu;
     });

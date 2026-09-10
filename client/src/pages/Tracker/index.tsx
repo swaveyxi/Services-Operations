@@ -195,10 +195,7 @@ export default function Tracker() {
       <div className={s.head}>
         <div className={s.idRow}>
           <span className={s.cid}>{c.campaign_id}</span>
-          <StatusBadge
-            kind='campaign'
-            value={toCampaignDisplayStatus(c.campaign_status, c.approval_status)}
-          />
+          <StatusBadge kind='campaign' value={toCampaignDisplayStatus(c.campaign_status)} />
         </div>
         <div className={s.headActions}>
           {isOwner && !archived && (
@@ -615,8 +612,8 @@ export default function Tracker() {
                   background: 'var(--t-negative-bg)',
                 }}
               >
-                <i className='fa-solid fa-circle-xmark' aria-hidden='true' /> Rejected — review
-                commercials and resubmit.
+                <i className='fa-solid fa-circle-xmark' aria-hidden='true' /> Rejected — this case
+                is now closed.
               </div>
             )}
           </div>

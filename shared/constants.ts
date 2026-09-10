@@ -5,7 +5,7 @@ export const isProduction = process.env.NODE_ENV === 'production';
 export const BUSINESS_UNITS = ['Recruitment', 'Scholarships', 'Testing'] as const;
 export type BusinessUnit = (typeof BUSINESS_UNITS)[number];
 
-export const CAMPAIGN_STATUSES = ['Draft', 'Pending', 'Rejected', 'Active', 'Inactive'] as const;
+export const CAMPAIGN_STATUSES = ['Draft', 'Pending', 'Active', 'Inactive'] as const;
 export const WORKPLAN_STATUSES = ['Not Started', 'Draft', 'Configured'] as const;
 export const OPS_REVIEW_STATUSES = ['Not Started', 'Pending', 'Accepted', 'Amended'] as const;
 export const APPROVAL_STATUSES = ['Not Started', 'Pending', 'Approved', 'Rejected'] as const;

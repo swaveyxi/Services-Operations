@@ -98,7 +98,7 @@ export default function Admin() {
     return campaigns.filter((c) => {
       const mq = !n || [c.campaign_id].some((v) => (v || '').toLowerCase().includes(n));
       const mu = !unit || ciEq(c.unit, unit);
-      const ms = !status || ciEq(toCampaignDisplayStatus(c.campaign_status, c.approval_status), status);
+      const ms = !status || ciEq(toCampaignDisplayStatus(c.campaign_status), status);
       return mq && mu && ms;
     });
   }, [campaigns, q, unit, status]);
@@ -192,7 +192,7 @@ export default function Admin() {
                     <span className={s.colLabel}>Campaign Status</span>
                     <StatusBadge
                       kind='campaign'
-                      value={toCampaignDisplayStatus(c.campaign_status, c.approval_status)}
+                      value={toCampaignDisplayStatus(c.campaign_status)}
                     />
                   </div>
                   <div className={s.col}>
