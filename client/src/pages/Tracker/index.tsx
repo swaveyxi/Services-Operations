@@ -8,9 +8,13 @@ import {
   updateCampaign,
   updateFormDetails,
   getServiceCatalog,
+  archiveCampaign,
+  unarchiveCampaign,
+  deleteCampaign,
   type ServiceCatalog,
 } from '@/services';
 import { getClientById } from '@/services/clients';
+import { useAuth } from '@/context/AuthContext';
 import type { Campaign, ConfiguredWorkplan, SupportForm, LineItem, Service } from '@shared/types';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LifecyclePipeline } from '@/components/LifecyclePipeline';
@@ -26,6 +30,7 @@ import s from './Tracker.module.css';
 export default function Tracker() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const [c, setC] = useState<Campaign | null>(null);
   const [workplans, setWorkplans] = useState<ConfiguredWorkplan[]>([]);
   const [forms, setForms] = useState<SupportForm[]>([]);
@@ -41,6 +46,10 @@ export default function Tracker() {
   );
   const [catalog, setCatalog] = useState<ServiceCatalog | null>(null);
   const [clientName, setClientName] = useState<string | null>(null);
+  const [archiving, callArchive] = useServiceCall();
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -63,7 +72,9 @@ export default function Tracker() {
     };
   }, [id]);
 
-  const locked = c ? !['Draft', 'Workplan'].includes(c.campaign_status ?? '') : false;
+  const isOwner = !!(c && userId && c.owner_user_id === userId);
+  const archived = !!c?.is_archived;
+  const locked = c ? archived || !['Draft', 'Workplan'].includes(c.campaign_status ?? '') : false;
   const profit = useMemo(
     () => (c ? computeProfitability(c.revenue_items ?? [], c.cost_items ?? []) : null),
     [c],
@@ -147,6 +158,27 @@ export default function Tracker() {
     }
   }
 
+  async function handleArchive() {
+    if (!c) return;
+    const result = await callArchive(() => archiveCampaign(c.id));
+    if (result !== null) {
+      setShowArchiveConfirm(false);
+      getCampaign(c.id).then(setC);
+    }
+  }
+
+  async function handleUnarchive() {
+    if (!c) return;
+    const result = await callArchive(() => unarchiveCampaign(c.id));
+    if (result !== null) getCampaign(c.id).then(setC);
+  }
+
+  async function handleDelete() {
+    if (!c) return;
+    const result = await callArchive(() => deleteCampaign(c.id));
+    if (result !== null) navigate('/');
+  }
+
   if (loading) return <div className='loading-state'>Loading case…</div>;
   if (!c)
     return (
@@ -163,12 +195,122 @@ export default function Tracker() {
       <div className={s.head}>
         <div className={s.idRow}>
           <span className={s.cid}>{c.campaign_id}</span>
-          <StatusBadge kind='campaign' value={toCampaignDisplayStatus(c.campaign_status)} />
+          <StatusBadge
+            kind='campaign'
+            value={toCampaignDisplayStatus(c.campaign_status, c.approval_status)}
+          />
         </div>
-        <button className='btn btn-secondary' onClick={() => navigate('/')}>
-          <i className='fa-solid fa-arrow-left' aria-hidden='true' /> Back to Cases
-        </button>
+        <div className={s.headActions}>
+          {isOwner && !archived && (
+            <button
+              className='btn btn-secondary'
+              onClick={() => setShowArchiveConfirm(true)}
+              disabled={archiving}
+            >
+              <i className='fa-solid fa-box-archive' aria-hidden='true' /> Archive
+            </button>
+          )}
+          {isOwner && (
+            <button
+              className='btn btn-danger'
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={archiving}
+            >
+              <i className='fa-solid fa-trash' aria-hidden='true' /> Delete
+            </button>
+          )}
+          <button className='btn btn-secondary' onClick={() => navigate('/')}>
+            <i className='fa-solid fa-arrow-left' aria-hidden='true' /> Back to Cases
+          </button>
+        </div>
       </div>
+
+      {archived && (
+        <div className={s.archivedBanner}>
+          <span>
+            <i className='fa-solid fa-box-archive' aria-hidden='true' /> This case is archived and
+            read-only.
+          </span>
+          {isOwner && (
+            <button className='btn btn-secondary btn-sm' onClick={handleUnarchive} disabled={archiving}>
+              {archiving ? 'Restoring…' : 'Unarchive'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {showArchiveConfirm && (
+        <Modal
+          title='Archive this case?'
+          onClose={() => setShowArchiveConfirm(false)}
+          footer={
+            <>
+              <button
+                className='btn btn-secondary'
+                onClick={() => setShowArchiveConfirm(false)}
+                disabled={archiving}
+              >
+                Cancel
+              </button>
+              <button className='btn btn-primary' onClick={handleArchive} disabled={archiving}>
+                {archiving ? 'Archiving…' : 'Archive Case'}
+              </button>
+            </>
+          }
+        >
+          <p>
+            <strong>{c.campaign_id}</strong> will be hidden from your active cases and marked
+            read-only. You can restore it anytime from the Archived Cases list on My Cases.
+          </p>
+        </Modal>
+      )}
+
+      {showDeleteConfirm && (
+        <Modal
+          title='Delete this case?'
+          onClose={() => {
+            setShowDeleteConfirm(false);
+            setDeleteConfirmText('');
+          }}
+          footer={
+            <>
+              <button
+                className='btn btn-secondary'
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmText('');
+                }}
+                disabled={archiving}
+              >
+                Cancel
+              </button>
+              <button
+                className='btn btn-danger'
+                onClick={handleDelete}
+                disabled={archiving || deleteConfirmText.trim() !== c.campaign_id}
+              >
+                {archiving ? 'Deleting…' : 'Delete Permanently'}
+              </button>
+            </>
+          }
+        >
+          <p>
+            This <strong>cannot be undone</strong>. {c.campaign_id} and everything attached to it
+            (workplans, forms, commercials) will be permanently and irreversibly locked — never
+            visible or editable again.
+          </p>
+          <p>
+            Type <strong>{c.campaign_id}</strong> to confirm.
+          </p>
+          <input
+            className='input'
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder={c.campaign_id}
+            autoFocus
+          />
+        </Modal>
+      )}
 
       <div className={s.grid}>
         <div className='card card-pad'>
@@ -215,8 +357,8 @@ export default function Tracker() {
             <h2 className='section-title'>Commercials</h2>
             {locked ? (
               <span className={s.lockNote}>
-                <i className='fa-solid fa-lock' aria-hidden='true' /> Profitability Approval -
-                Triggered
+                <i className='fa-solid fa-lock' aria-hidden='true' />{' '}
+                {archived ? 'Case is archived' : 'Profitability Approval - Triggered'}
               </span>
             ) : editingCommercials ? (
               <div style={{ display: 'flex', gap: 8 }}>
@@ -293,14 +435,16 @@ export default function Tracker() {
         <div className='card card-pad'>
           <div className='section-head'>
             <h2 className='section-title'>Workplan</h2>
-            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-              <button
-                className='btn btn-primary btn-sm'
-                onClick={() => navigate(`/workplan/${c.id}`)}
-              >
-                Configure Workplan
-              </button>
-            </div>
+            {!archived && (
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <button
+                  className='btn btn-primary btn-sm'
+                  onClick={() => navigate(`/workplan/${c.id}`)}
+                >
+                  Configure Workplan
+                </button>
+              </div>
+            )}
           </div>
           {workplans.length === 0 ? (
             <p className='muted'>No workplan configured yet.</p>
@@ -312,7 +456,7 @@ export default function Tracker() {
                   className={`${s.routeItem} ${s.routeItemLink}`}
                   onClick={() =>
                     navigate(
-                      ['Not Started', 'Draft'].includes(w.status)
+                      !archived && ['Not Started', 'Draft'].includes(w.status)
                         ? `/workplan/${c.id}`
                         : `/workplan-view/${c.id}`,
                     )
@@ -339,9 +483,11 @@ export default function Tracker() {
                 ({forms.length})
               </span>
             </h2>
-            <button className='btn btn-secondary btn-sm' onClick={() => navigate(`/forms/${c.id}`)}>
-              <i className='fa-solid fa-plus' aria-hidden='true' /> Submit a Form
-            </button>
+            {!archived && (
+              <button className='btn btn-secondary btn-sm' onClick={() => navigate(`/forms/${c.id}`)}>
+                <i className='fa-solid fa-plus' aria-hidden='true' /> Submit a Form
+              </button>
+            )}
           </div>
           {forms.length === 0 ? (
             <p className='muted'>No forms submitted for this case yet.</p>
@@ -507,7 +653,8 @@ export default function Tracker() {
                 <button className='btn btn-secondary' onClick={closeFormModal}>
                   Close
                 </button>
-                {FORM_TITLE_TO_KEY[activeForm.form_type] === 'test-order' &&
+                {!archived &&
+                  FORM_TITLE_TO_KEY[activeForm.form_type] === 'test-order' &&
                   activeForm.delivery_status !== 'Acknowledged' &&
                   activeForm.delivery_status !== 'Completed' && (
                     <button

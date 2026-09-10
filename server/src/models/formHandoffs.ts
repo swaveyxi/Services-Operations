@@ -1,6 +1,6 @@
-import { and, asc, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, inArray, ne } from 'drizzle-orm';
 import { db } from '../db/database';
-import { formHandoffs } from '../db/schema';
+import { formHandoffs, supportForms, campaigns } from '../db/schema';
 
 export type HandoffRow = typeof formHandoffs.$inferSelect;
 export type HandoffInsert = typeof formHandoffs.$inferInsert;
@@ -22,11 +22,16 @@ export async function updateHandoff(
   await db.update(formHandoffs).set(data).where(eq(formHandoffs.id, id));
 }
 
+// Two-hop join to campaigns (via supportForms) so acknowledgeHandoff/completeHandoff —
+// which both start from this lookup — are blocked once the owning campaign is
+// deleted, same rule as findFormById/findWorkplanById. Archived stays readable.
 export async function findHandoffById(id: string): Promise<HandoffRow | null> {
   const [row] = await db
-    .select()
+    .select(getTableColumns(formHandoffs))
     .from(formHandoffs)
-    .where(eq(formHandoffs.id, id))
+    .innerJoin(supportForms, eq(formHandoffs.form_id, supportForms.id))
+    .innerJoin(campaigns, eq(supportForms.campaign_id, campaigns.id))
+    .where(and(eq(formHandoffs.id, id), eq(campaigns.is_deleted, false)))
     .limit(1);
   return row ?? null;
 }

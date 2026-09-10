@@ -6,10 +6,15 @@ import {
   listMyCampaigns,
   listUnitCampaigns,
   listAllCampaigns,
+  listArchivedCampaigns,
   updateCommercials,
   submitForApproval,
+  archiveCampaign,
+  unarchiveCampaign,
+  deleteCampaign,
+  assertCampaignActionable,
 } from '../services/campaigns.service';
-import { updateCampaign } from '../models/campaigns';
+import { updateCampaign, findCampaignById } from '../models/campaigns';
 import { findFormsByCampaign } from '../models/forms';
 import { findWorkplansByCampaign } from '../models/workplans';
 
@@ -53,6 +58,12 @@ export async function listCampaigns(req: Request, res: Response): Promise<void> 
   res.json(campaigns);
 }
 
+// GET /api/campaigns/archived — current user's own archived cases
+export async function listArchived(req: Request, res: Response): Promise<void> {
+  const campaigns = await listArchivedCampaigns(req.user!.id);
+  res.json(campaigns);
+}
+
 // GET /api/campaigns/:id
 export async function getCampaign(req: Request, res: Response): Promise<void> {
   const campaign = await getCampaignDetail(String(req.params.id));
@@ -85,6 +96,7 @@ export async function patchCampaign(req: Request, res: Response): Promise<void> 
     return;
   }
 
+  await assertCampaignActionable(id);
   await updateCampaign(id, { client_id, description, updated_by: req.user!.id });
   res.json({ message: 'Campaign updated.' });
 }
@@ -100,6 +112,7 @@ export async function closeCampaign(req: Request, res: Response): Promise<void> 
   if (!req.user!.roles.includes('admin') && !req.user!.roles.includes('md')) {
     throw createError(403, 'Only admin or MD can close campaigns.');
   }
+  await assertCampaignActionable(String(req.params.id));
   await updateCampaign(String(req.params.id), {
     campaign_status: 'Closed',
     updated_by: req.user!.id,
@@ -107,14 +120,36 @@ export async function closeCampaign(req: Request, res: Response): Promise<void> 
   res.json({ message: 'Campaign closed.' });
 }
 
+// POST /api/campaigns/:id/archive
+export async function archive(req: Request, res: Response): Promise<void> {
+  await archiveCampaign(String(req.params.id), req.user!.id);
+  res.json({ message: 'Case archived.' });
+}
+
+// POST /api/campaigns/:id/unarchive
+export async function unarchive(req: Request, res: Response): Promise<void> {
+  await unarchiveCampaign(String(req.params.id), req.user!.id);
+  res.json({ message: 'Case restored.' });
+}
+
+// DELETE /api/campaigns/:id
+export async function removeCampaign(req: Request, res: Response): Promise<void> {
+  await deleteCampaign(String(req.params.id), req.user!.id);
+  res.json({ message: 'Case deleted.' });
+}
+
 // GET /api/campaigns/:id/workplans
 export async function getCampaignWorkplans(req: Request, res: Response): Promise<void> {
-  const workplans = await findWorkplansByCampaign(String(req.params.id));
+  const campaign = await findCampaignById(String(req.params.id));
+  if (!campaign) throw createError(404, 'Campaign not found.');
+  const workplans = await findWorkplansByCampaign(campaign.id);
   res.json(workplans);
 }
 
 // GET /api/campaigns/:id/forms
 export async function getCampaignForms(req: Request, res: Response): Promise<void> {
-  const forms = await findFormsByCampaign(String(req.params.id));
+  const campaign = await findCampaignById(String(req.params.id));
+  if (!campaign) throw createError(404, 'Campaign not found.');
+  const forms = await findFormsByCampaign(campaign.id);
   res.json(forms);
 }

@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { listMyCampaigns, listUnitCampaigns, getClientById } from '@/services';
+import { useServiceCall } from '@/hooks/useServiceCall';
+import {
+  listMyCampaigns,
+  listUnitCampaigns,
+  listArchivedCampaigns,
+  unarchiveCampaign,
+  getClientById,
+} from '@/services';
 import type { Campaign } from '@shared/types';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LifecyclePipeline } from '@/components/LifecyclePipeline';
@@ -27,7 +34,10 @@ function CaseRow({
       <div>
         <div className={s.idLine}>
           <span className={s.cid}>{c.campaign_id}</span>
-          <StatusBadge kind='campaign' value={toCampaignDisplayStatus(c.campaign_status)} />
+          <StatusBadge
+            kind='campaign'
+            value={toCampaignDisplayStatus(c.campaign_status, c.approval_status)}
+          />
         </div>
         <div className={s.client}>
           {clientName || (!c.owner_name && '—')}
@@ -68,24 +78,46 @@ export default function Home() {
   const [statusUnit, setStatusUnit] = useState('');
   const [buUnit, setBuUnit] = useState('');
   const [pageUnit, setPageUnit] = useState(1);
+  const [archivedCases, setArchivedCases] = useState<Campaign[]>([]);
+  const [pageArchived, setPageArchived] = useState(1);
+  const [restoring, callRestore] = useServiceCall();
+
+  function refreshArchived() {
+    listArchivedCampaigns().then(setArchivedCases);
+  }
+
+  async function handleUnarchive(caseId: string) {
+    const result = await callRestore(() => unarchiveCampaign(caseId));
+    if (result !== null) {
+      refreshArchived();
+      Promise.all([listMyCampaigns(), listUnitCampaigns()]).then(([mine, unit]) => {
+        setCases(mine);
+        setUnitCases(unit);
+      });
+    }
+  }
 
   useEffect(() => {
     let active = true;
-    Promise.all([listMyCampaigns(), listUnitCampaigns()]).then(async ([mine, unit]) => {
-      if (!active) return;
-      setCases(mine);
-      setUnitCases(unit);
-      setLoading(false);
-      const ids = [
-        ...new Set([...mine, ...unit].map((x) => x.client_id).filter(Boolean)),
-      ] as string[];
-      const entries = await Promise.all(
-        ids.map((id) =>
-          getClientById(id).then((cl) => (cl ? ([id, cl.display_name] as const) : null)),
-        ),
-      );
-      if (active) setClientNames(Object.fromEntries(entries.filter(Boolean) as [string, string][]));
-    });
+    Promise.all([listMyCampaigns(), listUnitCampaigns(), listArchivedCampaigns()]).then(
+      async ([mine, unit, archived]) => {
+        if (!active) return;
+        setCases(mine);
+        setUnitCases(unit);
+        setArchivedCases(archived);
+        setLoading(false);
+        const ids = [
+          ...new Set([...mine, ...unit, ...archived].map((x) => x.client_id).filter(Boolean)),
+        ] as string[];
+        const entries = await Promise.all(
+          ids.map((id) =>
+            getClientById(id).then((cl) => (cl ? ([id, cl.display_name] as const) : null)),
+          ),
+        );
+        if (active)
+          setClientNames(Object.fromEntries(entries.filter(Boolean) as [string, string][]));
+      },
+    );
     return () => {
       active = false;
     };
@@ -95,7 +127,8 @@ export default function Home() {
     const needle = q.toLowerCase().trim();
     return cases.filter((c) => {
       const matchesQ = !needle || c.campaign_id.toLowerCase().includes(needle);
-      const matchesS = !status || ciEq(toCampaignDisplayStatus(c.campaign_status), status);
+      const matchesS =
+        !status || ciEq(toCampaignDisplayStatus(c.campaign_status, c.approval_status), status);
       const matchesBu = !bu || c.unit === bu;
       return matchesQ && matchesS && matchesBu;
     });
@@ -105,7 +138,9 @@ export default function Home() {
     const needle = qUnit.toLowerCase().trim();
     return unitCases.filter((c) => {
       const matchesQ = !needle || c.campaign_id.toLowerCase().includes(needle);
-      const matchesS = !statusUnit || ciEq(toCampaignDisplayStatus(c.campaign_status), statusUnit);
+      const matchesS =
+        !statusUnit ||
+        ciEq(toCampaignDisplayStatus(c.campaign_status, c.approval_status), statusUnit);
       const matchesBu = !buUnit || c.unit === buUnit;
       return matchesQ && matchesS && matchesBu;
     });
@@ -115,6 +150,10 @@ export default function Home() {
   useEffect(() => setPageUnit(1), [qUnit, statusUnit, buUnit]);
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const unitPageItems = unitFiltered.slice((pageUnit - 1) * PAGE_SIZE, pageUnit * PAGE_SIZE);
+  const archivedPageItems = archivedCases.slice(
+    (pageArchived - 1) * PAGE_SIZE,
+    pageArchived * PAGE_SIZE,
+  );
 
   return (
     <>
@@ -261,6 +300,63 @@ export default function Home() {
             totalItems={unitFiltered.length}
             noun='cases'
             onPage={setPageUnit}
+          />
+        </>
+      )}
+
+      <div className='page-head' style={{ marginTop: 'var(--space-6)' }}>
+        <div>
+          <h1 className='page-title'>Archived Cases</h1>
+          <p className='page-sub'>Cases you archived. Restore one to make it active again.</p>
+        </div>
+      </div>
+
+      {archivedCases.length === 0 ? (
+        <div className='empty-state'>You have no archived cases.</div>
+      ) : (
+        <>
+          <div className='table-wrap'>
+            <table className='table'>
+              <thead>
+                <tr>
+                  <th>Campaign ID</th>
+                  <th>Client</th>
+                  <th>Campaign Name</th>
+                  <th>Unit</th>
+                  <th>Date Created</th>
+                  <th>Last Updated</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {archivedPageItems.map((c) => (
+                  <tr key={c.id}>
+                    <td className='mono'>{c.campaign_id}</td>
+                    <td>{c.client_id && clientNames[c.client_id]}</td>
+                    <td>{c.name || '—'}</td>
+                    <td>{c.unit || '—'}</td>
+                    <td>{formatDate(c.created_at)}</td>
+                    <td>{formatDate(c.updated_at)}</td>
+                    <td>
+                      <button
+                        className='btn btn-secondary btn-sm'
+                        onClick={() => handleUnarchive(c.id)}
+                        disabled={restoring}
+                      >
+                        Unarchive
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pager
+            page={pageArchived}
+            pageSize={PAGE_SIZE}
+            totalItems={archivedCases.length}
+            noun='archived cases'
+            onPage={setPageArchived}
           />
         </>
       )}

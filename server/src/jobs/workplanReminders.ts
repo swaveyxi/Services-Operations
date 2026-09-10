@@ -22,7 +22,7 @@ async function remindReview(): Promise<void> {
   const workplans = await findWorkplansByStatus(['Submitted', 'Pending Review']);
   for (const wp of workplans) {
     const campaign = await findCampaignById(wp.campaign_id);
-    if (!campaign) continue;
+    if (!campaign || campaign.is_archived) continue;
     const owner = await findUserById(campaign.owner_user_id);
     await notifyWorkplanReviewReminder(
       {
@@ -41,7 +41,7 @@ async function remindAmended(): Promise<void> {
   const workplans = await findWorkplansByStatus(['Amended']);
   for (const wp of workplans) {
     const campaign = await findCampaignById(wp.campaign_id);
-    if (!campaign) continue;
+    if (!campaign || campaign.is_archived) continue;
     await notifyWorkplanAmendedReminder(
       {
         templateName: wp.template_name,

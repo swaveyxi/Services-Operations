@@ -1,6 +1,6 @@
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { db } from '../db/database';
-import { configuredWorkplans } from '../db/schema';
+import { configuredWorkplans, campaigns } from '../db/schema';
 
 export type WorkplanRow = typeof configuredWorkplans.$inferSelect;
 export type WorkplanInsert = typeof configuredWorkplans.$inferInsert;
@@ -15,11 +15,17 @@ export async function findWorkplansByStatus(
   return db.select().from(configuredWorkplans).where(inArray(configuredWorkplans.status, statuses));
 }
 
+// Joined to campaigns and filtered on is_deleted: this is the shared lookup every
+// workplan mutation (submit/accept/amend/update/remove) starts from, so gating it
+// here is what makes a deleted campaign's workplans unreachable everywhere at once.
+// Archived campaigns are NOT excluded — their workplans stay readable (Tracker's
+// read-only archived view depends on that).
 export async function findWorkplanById(id: string): Promise<WorkplanRow | null> {
   const [row] = await db
-    .select()
+    .select(getTableColumns(configuredWorkplans))
     .from(configuredWorkplans)
-    .where(eq(configuredWorkplans.id, id))
+    .innerJoin(campaigns, eq(configuredWorkplans.campaign_id, campaigns.id))
+    .where(and(eq(configuredWorkplans.id, id), eq(campaigns.is_deleted, false)))
     .limit(1);
   return row ?? null;
 }

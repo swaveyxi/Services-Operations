@@ -37,6 +37,13 @@ export const campaigns = table(
     // owner_user_id (set once at creation, never reassigned). Nullable: preserved
     // if that user account is later deleted.
     updated_by: t.varchar({ length: 36 }).references(() => users.id, { onDelete: 'set null' }),
+    // Archive — reversible. Hides the case from default listings; still readable
+    // (read-only) by direct id, and restorable via unarchive.
+    is_archived: t.boolean().notNull().default(false),
+    // Delete — irreversible from the app's perspective. The row is never actually
+    // removed (kept for compliance/forensics only), but every read path excludes
+    // it once set: it's dead to the client, same for everything hanging off it.
+    is_deleted: t.boolean().notNull().default(false),
     created_at: t.timestamp().notNull().defaultNow(),
     updated_at: t.timestamp().notNull().defaultNow().onUpdateNow(),
   },

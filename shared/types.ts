@@ -32,6 +32,7 @@ export type Campaign = {
   approval_status: string | null;
   approval_note: string | null;
   approved_by: string | null;
+  is_archived: boolean;
   created_at: string;
   updated_at: string;
   profitability: Profitability;

@@ -27,8 +27,12 @@ export function deliveryTone(status: string): BadgeTone {
    been submitted. 'Profitability' only happens inside submitWorkplan, in the
    same transaction as submitForApproval setting approval_status: 'Pending' —
    so only that stage genuinely means "awaiting a decision". */
-export function toCampaignDisplayStatus(dbStatus: string): string {
+export function toCampaignDisplayStatus(dbStatus: string, approvalStatus?: string | null): string {
   const s = (dbStatus || '').toLowerCase();
+  // A rejected case stays in the Profitability stage for revision + resubmission
+  // (campaign_status is untouched by rejectCampaign) — approval_status is what
+  // actually changed, so it must override the otherwise-generic "Pending" label.
+  if (s === 'profitability' && approvalStatus === 'Rejected') return 'Rejected';
   if (s === 'profitability') return 'Pending';
   if (s === 'closed') return 'Inactive';
   if (s === 'draft' || s === 'workplan') return 'Draft';
@@ -39,7 +43,7 @@ export function toCampaignDisplayStatus(dbStatus: string): string {
 export function campaignStatusTone(status: string): BadgeTone {
   const s = status.toLowerCase();
   if (s === 'active') return 'positive';
-  if (s === 'inactive') return 'negative';
+  if (s === 'inactive' || s === 'rejected') return 'negative';
   if (s === 'pending' || s === 'submitted') return 'pending';
   return 'neutral';
 }

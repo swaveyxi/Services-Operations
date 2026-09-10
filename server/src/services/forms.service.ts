@@ -17,6 +17,7 @@ import {
   hasActiveHandoffToTeam,
 } from '../models/formHandoffs';
 import { findCampaignById } from '../models/campaigns';
+import { assertCampaignActionable } from './campaigns.service';
 import { findUserById } from '../models/users';
 import { FORM_TITLE_TO_KEY, RESOURCE_SCALING_CANDIDATE_THRESHOLD } from '../../../shared/constants';
 import {
@@ -40,8 +41,7 @@ import type { OneDriveFile } from '../../../shared/types';
 export type CreateFormInput = Omit<FormInsert, 'id'>;
 
 export async function submitForm(input: CreateFormInput): Promise<FormRow> {
-  const campaign = await findCampaignById(input.campaign_id);
-  if (!campaign) throw createError(404, 'Campaign not found.');
+  const campaign = await assertCampaignActionable(input.campaign_id);
 
   const isTestOrder = FORM_TITLE_TO_KEY[input.form_type] === 'test-order';
   const candidateCount = Number((input.form_details as Record<string, unknown> | null)?.candidateCount);
@@ -106,6 +106,7 @@ export async function acknowledgeDelivery(
 ): Promise<void> {
   const form = await findFormById(id);
   if (!form) throw createError(404, 'Form not found.');
+  await assertCampaignActionable(form.campaign_id);
   if (form.delivery_status === 'Acknowledged' || form.delivery_status === 'Completed') {
     throw createError(409, 'Form has already been acknowledged.');
   }
@@ -142,6 +143,7 @@ export async function markDelivered(
 ): Promise<void> {
   const form = await findFormById(id);
   if (!form) throw createError(404, 'Form not found.');
+  await assertCampaignActionable(form.campaign_id);
   if (form.delivery_status !== 'Acknowledged') {
     throw createError(409, 'Form must be acknowledged before marking as completed.');
   }
@@ -185,6 +187,7 @@ export async function updateFormDetails(
 ): Promise<FormRow> {
   const form = await findFormById(id);
   if (!form) throw createError(404, 'Form not found.');
+  await assertCampaignActionable(form.campaign_id);
 
   const merged = { ...(form.form_details ?? {}), ...details };
   await updateForm(id, { form_details: merged, updated_by: actorId });
@@ -227,6 +230,7 @@ export async function sendHandoff(
 ): Promise<void> {
   const form = await findFormById(id);
   if (!form) throw createError(404, 'Form not found.');
+  await assertCampaignActionable(form.campaign_id);
   if (form.delivery_status === 'Submitted') {
     throw createError(409, 'Form must be delivered before a handoff can be sent.');
   }
@@ -268,6 +272,9 @@ export async function acknowledgeHandoff(handoffId: string, acknowledgedBy: stri
   if (handoff.status !== 'Pending') {
     throw createError(409, `Cannot acknowledge: handoff status is "${handoff.status}".`);
   }
+  const formForGuard = await findFormById(handoff.form_id);
+  if (formForGuard) await assertCampaignActionable(formForGuard.campaign_id);
+
   await updateHandoff(handoffId, {
     status: 'Acknowledged',
     acknowledged_by: acknowledgedBy,
@@ -303,6 +310,8 @@ export async function completeHandoff(
   if (handoff.status !== 'Pending' && handoff.status !== 'Acknowledged') {
     throw createError(409, `Cannot complete: handoff status is "${handoff.status}".`);
   }
+  const formForGuard = await findFormById(handoff.form_id);
+  if (formForGuard) await assertCampaignActionable(formForGuard.campaign_id);
 
   await updateHandoff(handoffId, {
     status: 'Completed',

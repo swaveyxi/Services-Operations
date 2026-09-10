@@ -30,11 +30,21 @@ export type CampaignFilters = {
 
 // ─── Campaigns ───────────────────────────────────────────────────────────────
 
+// Excludes deleted rows only — archived campaigns stay readable by id (read-only
+// Tracker view + the unarchive lookup both depend on this).
 export async function findCampaignById(id: string): Promise<CampaignRow | null> {
-  const [row] = await db.select().from(campaigns).where(eq(campaigns.id, id)).limit(1);
+  const [row] = await db
+    .select()
+    .from(campaigns)
+    .where(and(eq(campaigns.id, id), eq(campaigns.is_deleted, false)))
+    .limit(1);
   return row ?? null;
 }
 
+// Deliberately unfiltered (sees archived and deleted rows too): campaign_id is
+// globally unique at the DB level, so the id-generation collision check in
+// campaigns.service must see every row ever assigned one, or it could hand out
+// an id that collides on insert.
 export async function findCampaignByKey(campaignId: string): Promise<CampaignRow | null> {
   const [row] = await db
     .select()
@@ -48,7 +58,11 @@ export async function findCampaignsByOwner(
   ownerId: string,
   opts: { status?: CampaignRow['campaign_status']; limit?: number; offset?: number } = {},
 ): Promise<CampaignRow[]> {
-  const conditions = [eq(campaigns.owner_user_id, ownerId)];
+  const conditions = [
+    eq(campaigns.owner_user_id, ownerId),
+    eq(campaigns.is_deleted, false),
+    eq(campaigns.is_archived, false),
+  ];
   if (opts.status) conditions.push(eq(campaigns.campaign_status, opts.status));
   const query = db
     .select()
@@ -59,8 +73,25 @@ export async function findCampaignsByOwner(
   return query.limit(opts.limit).offset(opts.offset ?? 0);
 }
 
+// A user's own archived cases — the only place archived rows surface in a list.
+// Ordered by updated_at (bumped by the archive action itself, same as any other
+// row update) since there's no dedicated archived_at column to sort by.
+export async function findArchivedCampaignsByOwner(ownerId: string): Promise<CampaignRow[]> {
+  return db
+    .select()
+    .from(campaigns)
+    .where(
+      and(
+        eq(campaigns.owner_user_id, ownerId),
+        eq(campaigns.is_archived, true),
+        eq(campaigns.is_deleted, false),
+      ),
+    )
+    .orderBy(desc(campaigns.updated_at));
+}
+
 export async function findAllCampaigns(opts: CampaignFilters = {}): Promise<CampaignRow[]> {
-  const conditions = [];
+  const conditions = [eq(campaigns.is_deleted, false), eq(campaigns.is_archived, false)];
   if (opts.status) conditions.push(eq(campaigns.campaign_status, opts.status));
   if (opts.approvalStatus) conditions.push(eq(campaigns.approval_status, opts.approvalStatus));
   if (opts.unit) {

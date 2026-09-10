@@ -12,6 +12,27 @@
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.archivedBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: 0.7rem 1rem;
+  margin-bottom: var(--space-5);
+  border-radius: var(--radius-md, 8px);
+  background: var(--t-pending-bg);
+  color: var(--t-pending-fg);
+  border: 1px solid var(--t-pending-bd);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
 .cid {
   font-family: var(--font-mono);
   font-size: 1.3rem;

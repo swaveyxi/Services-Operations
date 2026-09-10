@@ -101,6 +101,17 @@ export default function Forms() {
     }
   }
 
+  if (campaign?.is_archived) {
+    return (
+      <div className='error-state'>
+        This case is archived and read-only.{' '}
+        <button className='btn btn-secondary' onClick={() => navigate(`/tracker/${campaign.id}`)}>
+          Back to Case
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="page-head">

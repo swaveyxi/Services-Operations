@@ -191,6 +191,16 @@ export default function Workplan() {
 
   if (loading) return <div className='loading-state'>Loading workplan…</div>;
   if (!campaign) return <div className='error-state'>Case not found.</div>;
+  if (campaign.is_archived) {
+    return (
+      <div className='error-state'>
+        This case is archived and read-only.{' '}
+        <button className='btn btn-secondary' onClick={() => navigate(`/tracker/${campaign.id}`)}>
+          Back to Case
+        </button>
+      </div>
+    );
+  }
 
   const selectedEntries = Object.entries(selected);
   // Only Draft / Not Started are editable here; Amended workplans are handled on /workplan-view

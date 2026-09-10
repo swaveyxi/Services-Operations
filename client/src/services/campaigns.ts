@@ -76,3 +76,20 @@ export async function rejectCampaign(id: string, note: string): Promise<Campaign
   await api.post(`/approvals/${id}/reject`, { note });
   return (await getCampaign(id))!;
 }
+
+export async function listArchivedCampaigns(): Promise<Campaign[]> {
+  const res = await api.get('/campaigns/archived');
+  return res.json();
+}
+
+export async function archiveCampaign(id: string): Promise<void> {
+  await api.post(`/campaigns/${id}/archive`, {});
+}
+
+export async function unarchiveCampaign(id: string): Promise<void> {
+  await api.post(`/campaigns/${id}/unarchive`, {});
+}
+
+export async function deleteCampaign(id: string): Promise<void> {
+  await api.del(`/campaigns/${id}`);
+}

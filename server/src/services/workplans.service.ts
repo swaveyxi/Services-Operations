@@ -17,7 +17,7 @@ import {
   notifyWorkplanAmended,
   notifyWorkplanAccepted,
 } from './email.service';
-import { submitForApproval } from './campaigns.service';
+import { submitForApproval, assertCampaignActionable } from './campaigns.service';
 import { calcProfitability } from './profitability.service';
 import { getOpsTeam } from '../../../shared/constants';
 
@@ -47,8 +47,7 @@ export async function createConfiguredWorkplan(
   input: CreateWorkplanInput,
   actorId: string,
 ): Promise<WorkplanRow> {
-  const campaign = await findCampaignById(input.campaign_id);
-  if (!campaign) throw createError(404, 'Campaign not found.');
+  const campaign = await assertCampaignActionable(input.campaign_id);
 
   const id = randomUUID();
   await createWorkplan({ ...input, id, created_by: actorId });
@@ -65,6 +64,7 @@ export async function createConfiguredWorkplan(
 export async function submitWorkplan(id: string, actorId: string): Promise<void> {
   const wp = await findWorkplanById(id);
   if (!wp) throw createError(404, 'Workplan not found.');
+  await assertCampaignActionable(wp.campaign_id);
   if (wp.status !== 'Draft' && wp.status !== 'Amended') {
     throw createError(409, `Cannot submit a workplan with status "${wp.status}".`);
   }
@@ -109,6 +109,7 @@ export async function submitWorkplan(id: string, actorId: string): Promise<void>
 export async function acceptWorkplan(id: string, actorId: string): Promise<void> {
   const wp = await findWorkplanById(id);
   if (!wp) throw createError(404, 'Workplan not found.');
+  await assertCampaignActionable(wp.campaign_id);
   if (!['Submitted', 'Pending Review', 'Amended'].includes(wp.status)) {
     throw createError(409, `Cannot accept a workplan with status "${wp.status}".`);
   }
@@ -145,6 +146,7 @@ export async function amendWorkplan(
 ): Promise<void> {
   const wp = await findWorkplanById(id);
   if (!wp) throw createError(404, 'Workplan not found.');
+  await assertCampaignActionable(wp.campaign_id);
   if (wp.status !== 'Submitted' && wp.status !== 'Pending Review') {
     throw createError(409, `Cannot amend a workplan with status "${wp.status}".`);
   }
@@ -175,6 +177,7 @@ export async function updateWorkplanDraft(
 ): Promise<void> {
   const wp = await findWorkplanById(id);
   if (!wp) throw createError(404, 'Workplan not found.');
+  await assertCampaignActionable(wp.campaign_id);
   if (wp.status === 'Accepted') {
     throw createError(409, 'Accepted workplans cannot be edited.');
   }
@@ -186,6 +189,7 @@ export async function updateWorkplanDraft(
 export async function removeWorkplan(id: string): Promise<void> {
   const wp = await findWorkplanById(id);
   if (!wp) throw createError(404, 'Workplan not found.');
+  await assertCampaignActionable(wp.campaign_id);
   if (wp.status === 'Accepted') {
     throw createError(409, 'Accepted workplans cannot be deleted.');
   }

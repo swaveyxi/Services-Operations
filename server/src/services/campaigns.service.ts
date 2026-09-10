@@ -5,6 +5,7 @@ import {
   findCampaignById,
   findCampaignByKey,
   findCampaignsByOwner,
+  findArchivedCampaignsByOwner,
   findAllCampaigns,
   createCampaign,
   updateCampaign,
@@ -188,6 +189,21 @@ export async function listAllCampaigns(filters: CampaignFilters = {}) {
   }));
 }
 
+// ─── Archived/deleted guard ────────────────────────────────────────────────────
+// Shared entry point for every mutation that acts on a campaign, directly or via
+// a child row (workplan/form/handoff) that carries its campaign_id. Deleted
+// campaigns are already unreachable via findCampaignById (returns null); this
+// adds the archived check on top, since archived rows stay readable there for
+// the read-only Tracker view. Exported for workplans.service/forms.service.
+export async function assertCampaignActionable(id: string): Promise<CampaignRow> {
+  const campaign = await findCampaignById(id);
+  if (!campaign) throw createError(404, 'Campaign not found.');
+  if (campaign.is_archived) {
+    throw createError(409, 'This case is archived. Unarchive it first to make changes.');
+  }
+  return campaign;
+}
+
 // ─── Commercials update ───────────────────────────────────────────────────────
 
 export async function updateCommercials(
@@ -196,8 +212,7 @@ export async function updateCommercials(
   costItems: CostItemInsert[],
   actorId: string,
 ): Promise<ProfitabilitySummary> {
-  const campaign = await findCampaignById(id);
-  if (!campaign) throw createError(404, 'Campaign not found.');
+  const campaign = await assertCampaignActionable(id);
   if (campaign.campaign_status === 'Active' || campaign.campaign_status === 'Closed') {
     throw createError(409, 'Commercials cannot be edited once the campaign is Active or Closed.');
   }
@@ -215,8 +230,7 @@ export async function updateCommercials(
 // ─── Approval flow ────────────────────────────────────────────────────────────
 
 export async function submitForApproval(id: string, actorId: string): Promise<void> {
-  const campaign = await findCampaignById(id);
-  if (!campaign) throw createError(404, 'Campaign not found.');
+  const campaign = await assertCampaignActionable(id);
   if (campaign.campaign_status !== 'Profitability') {
     throw createError(409, 'Campaign must be in Profitability stage before submitting for approval.');
   }
@@ -293,8 +307,7 @@ export async function approveCampaign(
   actorId: string,
   note?: string,
 ): Promise<void> {
-  const campaign = await findCampaignById(id);
-  if (!campaign) throw createError(404, 'Campaign not found.');
+  const campaign = await assertCampaignActionable(id);
   if (campaign.approval_status !== 'Pending') {
     throw createError(409, 'Campaign is not pending approval.');
   }
@@ -317,8 +330,7 @@ export async function rejectCampaign(
   actorId: string,
   note: string,
 ): Promise<void> {
-  const campaign = await findCampaignById(id);
-  if (!campaign) throw createError(404, 'Campaign not found.');
+  const campaign = await assertCampaignActionable(id);
   if (campaign.approval_status !== 'Pending') {
     throw createError(409, 'Campaign is not pending approval.');
   }
@@ -332,4 +344,49 @@ export async function rejectCampaign(
 
   const data = { ...(await buildCaseReportData(campaign)), rejectedBy, note };
   await notifyCampaignRejected(data, campaign.owner_user_id);
+}
+
+// ─── Archive / delete (owner-only) ────────────────────────────────────────────
+
+export async function listArchivedCampaigns(
+  ownerId: string,
+): Promise<(CampaignRow & { profitability: ProfitabilitySummary })[]> {
+  const rows = await findArchivedCampaignsByOwner(ownerId);
+  const profMap = await getProfitabilityBatch(rows.map((r) => r.id));
+  return rows.map((r) => ({ ...r, profitability: profFromTotals(profMap.get(r.id)!) }));
+}
+
+export async function archiveCampaign(id: string, actorId: string): Promise<void> {
+  const campaign = await findCampaignById(id);
+  if (!campaign) throw createError(404, 'Campaign not found.');
+  if (campaign.owner_user_id !== actorId) {
+    throw createError(403, 'Only the case owner can archive this case.');
+  }
+  if (campaign.is_archived) throw createError(409, 'Case is already archived.');
+
+  await updateCampaign(id, { is_archived: true, updated_by: actorId });
+}
+
+export async function unarchiveCampaign(id: string, actorId: string): Promise<void> {
+  const campaign = await findCampaignById(id);
+  if (!campaign) throw createError(404, 'Campaign not found.');
+  if (campaign.owner_user_id !== actorId) {
+    throw createError(403, 'Only the case owner can restore this case.');
+  }
+  if (!campaign.is_archived) throw createError(409, 'Case is not archived.');
+
+  await updateCampaign(id, { is_archived: false, updated_by: actorId });
+}
+
+// Irreversible from the app's perspective: the row itself is never dropped
+// (compliance/forensics only), but every read path filters is_deleted out, so
+// nothing here — or anything hanging off this campaign_id — is reachable again.
+export async function deleteCampaign(id: string, actorId: string): Promise<void> {
+  const campaign = await findCampaignById(id);
+  if (!campaign) throw createError(404, 'Campaign not found.');
+  if (campaign.owner_user_id !== actorId) {
+    throw createError(403, 'Only the case owner can delete this case.');
+  }
+
+  await updateCampaign(id, { is_deleted: true, updated_by: actorId });
 }
