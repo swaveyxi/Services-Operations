@@ -4,6 +4,8 @@ import { BUSINESS_UNITS } from '../../../shared/constants';
 const UnitSchema = z.enum([...BUSINESS_UNITS]);
 
 const LineItemSchema = z.object({
+  // Present when editing an existing row (identifies it for update); absent for a new item.
+  id: z.string().uuid().optional(),
   service_income_id: z.string().uuid().optional().nullable(),
   service_cost_id: z.string().uuid().optional().nullable(),
   service_name: z.string().min(1).max(255),

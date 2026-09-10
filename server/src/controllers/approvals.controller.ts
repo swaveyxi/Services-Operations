@@ -29,13 +29,13 @@ export async function listPendingApprovals(req: Request, res: Response): Promise
 // POST /api/approvals/:id/approve
 export async function approve(req: Request, res: Response): Promise<void> {
   const { note } = req.body;
-  await approveCampaign(String(req.params.id), req.user!.name, note);
+  await approveCampaign(String(req.params.id), req.user!.name, req.user!.id, note);
   res.json({ message: 'Campaign approved.' });
 }
 
 // POST /api/approvals/:id/reject
 export async function reject(req: Request, res: Response): Promise<void> {
   const { note } = req.body;
-  await rejectCampaign(String(req.params.id), req.user!.name, note);
+  await rejectCampaign(String(req.params.id), req.user!.name, req.user!.id, note);
   res.json({ message: 'Campaign rejected.' });
 }

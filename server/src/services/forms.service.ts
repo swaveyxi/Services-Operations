@@ -76,7 +76,7 @@ export async function submitForm(input: CreateFormInput): Promise<FormRow> {
     { ...base, formId: id, submitterName: submitter?.name },
     input.operations_team,
   );
-  await updateForm(id, { delivery_status: 'Delivered' });
+  await updateForm(id, { delivery_status: 'Delivered', updated_by: input.submitter_user_id ?? null });
 
   if (isTestOrder) {
     await notifyTestOrderSubmitted({
@@ -99,7 +99,11 @@ export async function submitForm(input: CreateFormInput): Promise<FormRow> {
 
 // ─── Delivery lifecycle ───────────────────────────────────────────────────────
 
-export async function acknowledgeDelivery(id: string, acknowledgedBy: string): Promise<void> {
+export async function acknowledgeDelivery(
+  id: string,
+  acknowledgedBy: string,
+  actorId: string,
+): Promise<void> {
   const form = await findFormById(id);
   if (!form) throw createError(404, 'Form not found.');
   if (form.delivery_status === 'Acknowledged' || form.delivery_status === 'Completed') {
@@ -112,6 +116,7 @@ export async function acknowledgeDelivery(id: string, acknowledgedBy: string): P
       ...currentDetails,
       _acknowledged: { by: acknowledgedBy, on: new Date().toISOString() },
     },
+    updated_by: actorId,
   });
 
   const campaign = await findCampaignById(form.campaign_id);
@@ -131,6 +136,7 @@ export async function acknowledgeDelivery(id: string, acknowledgedBy: string): P
 export async function markDelivered(
   id: string,
   completedBy: string,
+  actorId: string,
   note?: string,
   evidence?: OneDriveFile[],
 ): Promise<void> {
@@ -151,6 +157,7 @@ export async function markDelivered(
         ...(evidence ? { evidence } : {}),
       },
     },
+    updated_by: actorId,
   });
 
   const campaign = await findCampaignById(form.campaign_id);
@@ -174,12 +181,13 @@ export async function markDelivered(
 export async function updateFormDetails(
   id: string,
   details: Record<string, unknown>,
+  actorId: string,
 ): Promise<FormRow> {
   const form = await findFormById(id);
   if (!form) throw createError(404, 'Form not found.');
 
   const merged = { ...(form.form_details ?? {}), ...details };
-  await updateForm(id, { form_details: merged });
+  await updateForm(id, { form_details: merged, updated_by: actorId });
 
   const isTestOrder = FORM_TITLE_TO_KEY[form.form_type] === 'test-order';
   if (isTestOrder && 'testingSessions' in details) {

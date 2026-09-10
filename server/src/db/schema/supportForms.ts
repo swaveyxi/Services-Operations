@@ -25,6 +25,9 @@ export const supportForms = table(
       .default('Submitted'),
     operations_team: t.varchar({ length: 50 }).notNull(),
     submitted_on: t.datetime(),
+    // Audit trail: who last modified this row. Creator is already tracked via
+    // submitter_user_id. Nullable: preserved if that user account is later deleted.
+    updated_by: t.varchar({ length: 36 }).references(() => users.id, { onDelete: 'set null' }),
     created_at: t.timestamp().notNull().defaultNow(),
     updated_at: t.timestamp().notNull().defaultNow().onUpdateNow(),
   },

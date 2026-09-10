@@ -75,18 +75,23 @@ export async function patchCampaign(req: Request, res: Response): Promise<void> 
   const { revenue_items, cost_items, client_id, description } = req.body;
 
   if (revenue_items !== undefined || cost_items !== undefined) {
-    const profitability = await updateCommercials(id, revenue_items ?? [], cost_items ?? []);
+    const profitability = await updateCommercials(
+      id,
+      revenue_items ?? [],
+      cost_items ?? [],
+      req.user!.id,
+    );
     res.json({ profitability });
     return;
   }
 
-  await updateCampaign(id, { client_id, description });
+  await updateCampaign(id, { client_id, description, updated_by: req.user!.id });
   res.json({ message: 'Campaign updated.' });
 }
 
 // POST /api/campaigns/:id/submit
 export async function submitCampaign(req: Request, res: Response): Promise<void> {
-  await submitForApproval(String(req.params.id));
+  await submitForApproval(String(req.params.id), req.user!.id);
   res.json({ message: 'Campaign submitted for approval.' });
 }
 
@@ -95,7 +100,10 @@ export async function closeCampaign(req: Request, res: Response): Promise<void> 
   if (!req.user!.roles.includes('admin') && !req.user!.roles.includes('md')) {
     throw createError(403, 'Only admin or MD can close campaigns.');
   }
-  await updateCampaign(String(req.params.id), { campaign_status: 'Closed' });
+  await updateCampaign(String(req.params.id), {
+    campaign_status: 'Closed',
+    updated_by: req.user!.id,
+  });
   res.json({ message: 'Campaign closed.' });
 }
 

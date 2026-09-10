@@ -7,8 +7,16 @@ export type CampaignRow = typeof campaigns.$inferSelect;
 export type RevenueItemRow = typeof campaignRevenueItems.$inferSelect;
 export type CostItemRow = typeof campaignCostItems.$inferSelect;
 export type CampaignInsert = typeof campaigns.$inferInsert;
-export type RevenueItemInsert = Omit<typeof campaignRevenueItems.$inferInsert, 'id' | 'created_at'>;
-export type CostItemInsert = Omit<typeof campaignCostItems.$inferInsert, 'id' | 'created_at'>;
+// `id` stays optional here (not omitted): present on a payload item, it identifies an
+// existing row to update in place; absent, the item is treated as new.
+export type RevenueItemInsert = Omit<
+  typeof campaignRevenueItems.$inferInsert,
+  'campaign_id' | 'created_by' | 'updated_by' | 'created_at' | 'updated_at'
+>;
+export type CostItemInsert = Omit<
+  typeof campaignCostItems.$inferInsert,
+  'campaign_id' | 'created_by' | 'updated_by' | 'created_at' | 'updated_at'
+>;
 
 export type CampaignFilters = {
   status?: CampaignRow['campaign_status'];
@@ -166,34 +174,73 @@ export async function getCostItemsBatch(
   return map;
 }
 
-export async function replaceRevenueItems(
+// Diff-based upsert: a payload item with an `id` matching an existing row is updated in
+// place (stamped updated_by); one with no `id` (or an `id` that doesn't match any current
+// row) is inserted as new (stamped created_by). Existing rows whose `id` is missing from
+// the payload were removed by the user and are deleted — nothing else is touched, so
+// created_by/created_at survive edits to a row's own figures.
+export async function upsertRevenueItems(
   campaignId: string,
   items: RevenueItemInsert[],
+  actorId: string,
 ): Promise<void> {
   await db.transaction(async (tx) => {
-    await tx
-      .delete(campaignRevenueItems)
+    const existing = await tx
+      .select({ id: campaignRevenueItems.id })
+      .from(campaignRevenueItems)
       .where(eq(campaignRevenueItems.campaign_id, campaignId));
-    if (items.length) {
-      await tx.insert(campaignRevenueItems).values(
-        items.map((item) => ({ ...item, id: randomUUID(), campaign_id: campaignId })),
-      );
+    const existingIds = new Set(existing.map((r) => r.id));
+    const incomingIds = new Set(items.filter((i) => i.id).map((i) => i.id!));
+
+    const toDelete = [...existingIds].filter((id) => !incomingIds.has(id));
+    if (toDelete.length) {
+      await tx.delete(campaignRevenueItems).where(inArray(campaignRevenueItems.id, toDelete));
+    }
+
+    for (const { id, ...rest } of items) {
+      if (id && existingIds.has(id)) {
+        await tx
+          .update(campaignRevenueItems)
+          .set({ ...rest, updated_by: actorId })
+          .where(eq(campaignRevenueItems.id, id));
+      } else {
+        await tx
+          .insert(campaignRevenueItems)
+          .values({ ...rest, id: randomUUID(), campaign_id: campaignId, created_by: actorId });
+      }
     }
   });
 }
 
-export async function replaceCostItems(
+export async function upsertCostItems(
   campaignId: string,
   items: CostItemInsert[],
+  actorId: string,
 ): Promise<void> {
   await db.transaction(async (tx) => {
-    await tx
-      .delete(campaignCostItems)
+    const existing = await tx
+      .select({ id: campaignCostItems.id })
+      .from(campaignCostItems)
       .where(eq(campaignCostItems.campaign_id, campaignId));
-    if (items.length) {
-      await tx.insert(campaignCostItems).values(
-        items.map((item) => ({ ...item, id: randomUUID(), campaign_id: campaignId })),
-      );
+    const existingIds = new Set(existing.map((r) => r.id));
+    const incomingIds = new Set(items.filter((i) => i.id).map((i) => i.id!));
+
+    const toDelete = [...existingIds].filter((id) => !incomingIds.has(id));
+    if (toDelete.length) {
+      await tx.delete(campaignCostItems).where(inArray(campaignCostItems.id, toDelete));
+    }
+
+    for (const { id, ...rest } of items) {
+      if (id && existingIds.has(id)) {
+        await tx
+          .update(campaignCostItems)
+          .set({ ...rest, updated_by: actorId })
+          .where(eq(campaignCostItems.id, id));
+      } else {
+        await tx
+          .insert(campaignCostItems)
+          .values({ ...rest, id: randomUUID(), campaign_id: campaignId, created_by: actorId });
+      }
     }
   });
 }

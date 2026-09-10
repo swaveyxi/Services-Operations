@@ -41,17 +41,20 @@ export function aggregateWorkplanStatus(workplans: WorkplanRow[]): WorkplanRow['
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
-export type CreateWorkplanInput = Omit<WorkplanInsert, 'id'>;
+export type CreateWorkplanInput = Omit<WorkplanInsert, 'id' | 'created_by' | 'updated_by'>;
 
-export async function createConfiguredWorkplan(input: CreateWorkplanInput): Promise<WorkplanRow> {
+export async function createConfiguredWorkplan(
+  input: CreateWorkplanInput,
+  actorId: string,
+): Promise<WorkplanRow> {
   const campaign = await findCampaignById(input.campaign_id);
   if (!campaign) throw createError(404, 'Campaign not found.');
 
   const id = randomUUID();
-  await createWorkplan({ ...input, id });
+  await createWorkplan({ ...input, id, created_by: actorId });
 
   if (campaign.campaign_status === 'Draft') {
-    await updateCampaign(campaign.id, { campaign_status: 'Workplan' });
+    await updateCampaign(campaign.id, { campaign_status: 'Workplan', updated_by: actorId });
   }
 
   return (await findWorkplanById(id))!;
@@ -59,7 +62,7 @@ export async function createConfiguredWorkplan(input: CreateWorkplanInput): Prom
 
 // ─── Submit / Resubmit ────────────────────────────────────────────────────────
 
-export async function submitWorkplan(id: string): Promise<void> {
+export async function submitWorkplan(id: string, actorId: string): Promise<void> {
   const wp = await findWorkplanById(id);
   if (!wp) throw createError(404, 'Workplan not found.');
   if (wp.status !== 'Draft' && wp.status !== 'Amended') {
@@ -75,12 +78,12 @@ export async function submitWorkplan(id: string): Promise<void> {
   }
 
   const isResubmit = wp.status === 'Amended';
-  await updateWorkplan(id, { status: 'Submitted' });
+  await updateWorkplan(id, { status: 'Submitted', updated_by: actorId });
 
   const campaign = await findCampaignById(wp.campaign_id);
   if (campaign && campaign.campaign_status === 'Workplan') {
-    await updateCampaign(wp.campaign_id, { campaign_status: 'Profitability' });
-    await submitForApproval(wp.campaign_id);
+    await updateCampaign(wp.campaign_id, { campaign_status: 'Profitability', updated_by: actorId });
+    await submitForApproval(wp.campaign_id, actorId);
   }
 
   const opsTeamName = getOpsTeam(wp.template_name);
@@ -103,14 +106,14 @@ export async function submitWorkplan(id: string): Promise<void> {
 
 // ─── Accept (ops) ─────────────────────────────────────────────────────────────
 
-export async function acceptWorkplan(id: string): Promise<void> {
+export async function acceptWorkplan(id: string, actorId: string): Promise<void> {
   const wp = await findWorkplanById(id);
   if (!wp) throw createError(404, 'Workplan not found.');
   if (!['Submitted', 'Pending Review', 'Amended'].includes(wp.status)) {
     throw createError(409, `Cannot accept a workplan with status "${wp.status}".`);
   }
 
-  await updateWorkplan(id, { status: 'Accepted' });
+  await updateWorkplan(id, { status: 'Accepted', updated_by: actorId });
 
   const campaign = await findCampaignById(wp.campaign_id);
   if (campaign) {
@@ -135,14 +138,18 @@ export type AmendWorkplanInput = {
   ops_end_date?: WorkplanRow['ops_end_date'];
 };
 
-export async function amendWorkplan(id: string, data: AmendWorkplanInput): Promise<void> {
+export async function amendWorkplan(
+  id: string,
+  data: AmendWorkplanInput,
+  actorId: string,
+): Promise<void> {
   const wp = await findWorkplanById(id);
   if (!wp) throw createError(404, 'Workplan not found.');
   if (wp.status !== 'Submitted' && wp.status !== 'Pending Review') {
     throw createError(409, `Cannot amend a workplan with status "${wp.status}".`);
   }
 
-  await updateWorkplan(id, { status: 'Amended', ...data });
+  await updateWorkplan(id, { status: 'Amended', ...data, updated_by: actorId });
 
   const campaign = await findCampaignById(wp.campaign_id);
   if (campaign) {
@@ -164,13 +171,14 @@ export async function amendWorkplan(id: string, data: AmendWorkplanInput): Promi
 export async function updateWorkplanDraft(
   id: string,
   data: Partial<Pick<WorkplanRow, 'activities' | 'ops_start_date' | 'ops_end_date' | 'template_name'>>,
+  actorId: string,
 ): Promise<void> {
   const wp = await findWorkplanById(id);
   if (!wp) throw createError(404, 'Workplan not found.');
   if (wp.status === 'Accepted') {
     throw createError(409, 'Accepted workplans cannot be edited.');
   }
-  await updateWorkplan(id, data);
+  await updateWorkplan(id, { ...data, updated_by: actorId });
 }
 
 // ─── Delete ───────────────────────────────────────────────────────────────────

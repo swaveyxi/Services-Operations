@@ -47,13 +47,13 @@ export async function patchForm(req: Request, res: Response): Promise<void> {
   const { action, handoff_team, handoff_id, attachment, report, note, evidence } = req.body;
 
   if (action === 'deliver') {
-    await markDelivered(id, req.user!.name, note, evidence);
+    await markDelivered(id, req.user!.name, req.user!.id, note, evidence);
     res.json({ message: 'Form marked as delivered.' });
     return;
   }
 
   if (action === 'acknowledge') {
-    await acknowledgeDelivery(id, req.user!.name);
+    await acknowledgeDelivery(id, req.user!.name, req.user!.id);
     res.json({ message: 'Delivery acknowledged.' });
     return;
   }
@@ -77,7 +77,7 @@ export async function patchForm(req: Request, res: Response): Promise<void> {
   }
 
   if (req.body.form_details) {
-    const updated = await updateFormDetails(id, req.body.form_details);
+    const updated = await updateFormDetails(id, req.body.form_details, req.user!.id);
     res.json(updated);
     return;
   }

@@ -23,9 +23,7 @@ export const campaigns = table(
       .references(() => users.id, { onDelete: 'restrict' }),
     unit: t.mysqlEnum(['Recruitment', 'Scholarships', 'Testing']).notNull(),
     // Human-readable campaign name, e.g. "MTN Scholarships 2026" — distinct
-    // from campaign_id (the generated business key) and description (free
-    // text). Nullable so pre-existing rows aren't broken by the migration;
-    // required going forward via CreateCampaignSchema.
+    // from campaign_id
     name: t.varchar({ length: 255 }),
     description: t.text(),
     campaign_status: t
@@ -35,6 +33,10 @@ export const campaigns = table(
     approval_status: t.mysqlEnum(['Pending', 'Approved', 'Rejected']),
     approval_note: t.text(),
     approved_by: t.varchar({ length: 255 }),
+    // Audit trail: who last modified this row. Creator is already tracked via
+    // owner_user_id (set once at creation, never reassigned). Nullable: preserved
+    // if that user account is later deleted.
+    updated_by: t.varchar({ length: 36 }).references(() => users.id, { onDelete: 'set null' }),
     created_at: t.timestamp().notNull().defaultNow(),
     updated_at: t.timestamp().notNull().defaultNow().onUpdateNow(),
   },

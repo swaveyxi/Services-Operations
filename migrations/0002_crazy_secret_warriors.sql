@@ -1,1 +1,0 @@
-ALTER TABLE `campaigns` ADD `name` varchar(255);

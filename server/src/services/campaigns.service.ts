@@ -13,8 +13,8 @@ import {
   getCostItems,
   getRevenueItemsBatch,
   getCostItemsBatch,
-  replaceRevenueItems,
-  replaceCostItems,
+  upsertRevenueItems,
+  upsertCostItems,
   type CampaignRow,
   type RevenueItemInsert,
   type CostItemInsert,
@@ -89,8 +89,8 @@ export async function createNewCampaign(
     campaign_status: 'Draft',
   });
 
-  if (input.revenue_items?.length) await replaceRevenueItems(id, input.revenue_items);
-  if (input.cost_items?.length) await replaceCostItems(id, input.cost_items);
+  if (input.revenue_items?.length) await upsertRevenueItems(id, input.revenue_items, owner_id);
+  if (input.cost_items?.length) await upsertCostItems(id, input.cost_items, owner_id);
 
   return (await findCampaignById(id))!;
 }
@@ -194,6 +194,7 @@ export async function updateCommercials(
   id: string,
   revenueItems: RevenueItemInsert[],
   costItems: CostItemInsert[],
+  actorId: string,
 ): Promise<ProfitabilitySummary> {
   const campaign = await findCampaignById(id);
   if (!campaign) throw createError(404, 'Campaign not found.');
@@ -201,7 +202,10 @@ export async function updateCommercials(
     throw createError(409, 'Commercials cannot be edited once the campaign is Active or Closed.');
   }
 
-  await Promise.all([replaceRevenueItems(id, revenueItems), replaceCostItems(id, costItems)]);
+  await Promise.all([
+    upsertRevenueItems(id, revenueItems, actorId),
+    upsertCostItems(id, costItems, actorId),
+  ]);
 
   const [updatedRevenue, updatedCosts] = await Promise.all([getRevenueItems(id), getCostItems(id)]);
 
@@ -210,7 +214,7 @@ export async function updateCommercials(
 
 // ─── Approval flow ────────────────────────────────────────────────────────────
 
-export async function submitForApproval(id: string): Promise<void> {
+export async function submitForApproval(id: string, actorId: string): Promise<void> {
   const campaign = await findCampaignById(id);
   if (!campaign) throw createError(404, 'Campaign not found.');
   if (campaign.campaign_status !== 'Profitability') {
@@ -222,7 +226,7 @@ export async function submitForApproval(id: string): Promise<void> {
     throw createError(409, 'Cannot submit for approval — no revenue commercials have been configured for this case.');
   }
 
-  await updateCampaign(id, { approval_status: 'Pending' });
+  await updateCampaign(id, { approval_status: 'Pending', updated_by: actorId });
   await autoApproveIfEligible(id);
 }
 
@@ -286,6 +290,7 @@ export async function autoApproveIfEligible(id: string): Promise<void> {
 export async function approveCampaign(
   id: string,
   approvedBy: string,
+  actorId: string,
   note?: string,
 ): Promise<void> {
   const campaign = await findCampaignById(id);
@@ -299,13 +304,19 @@ export async function approveCampaign(
     approval_status: 'Approved',
     approved_by: approvedBy,
     approval_note: note ?? null,
+    updated_by: actorId,
   });
 
   const data = { ...(await buildCaseReportData(campaign)), approvedBy, approverComments: note, auto: false };
   await notifyCampaignApproved(data, campaign.owner_user_id);
 }
 
-export async function rejectCampaign(id: string, rejectedBy: string, note: string): Promise<void> {
+export async function rejectCampaign(
+  id: string,
+  rejectedBy: string,
+  actorId: string,
+  note: string,
+): Promise<void> {
   const campaign = await findCampaignById(id);
   if (!campaign) throw createError(404, 'Campaign not found.');
   if (campaign.approval_status !== 'Pending') {
@@ -316,6 +327,7 @@ export async function rejectCampaign(id: string, rejectedBy: string, note: strin
     approval_status: 'Rejected',
     approved_by: rejectedBy,
     approval_note: note,
+    updated_by: actorId,
   });
 
   const data = { ...(await buildCaseReportData(campaign)), rejectedBy, note };

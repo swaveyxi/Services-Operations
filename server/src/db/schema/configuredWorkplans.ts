@@ -2,6 +2,7 @@ import { mysqlTable as table } from 'drizzle-orm/mysql-core';
 import * as t from 'drizzle-orm/mysql-core';
 import { randomUUID } from 'node:crypto';
 import { campaigns } from './campaigns';
+import { users } from './users';
 
 export const configuredWorkplans = table(
   'configured_workplans',
@@ -21,6 +22,9 @@ export const configuredWorkplans = table(
     activities: t.json().$type<Record<string, unknown>[]>().notNull().default([]),
     ops_start_date: t.date(),
     ops_end_date: t.date(),
+    // Audit trail — nullable: preserved if the acting user account is later deleted.
+    created_by: t.varchar({ length: 36 }).references(() => users.id, { onDelete: 'set null' }),
+    updated_by: t.varchar({ length: 36 }).references(() => users.id, { onDelete: 'set null' }),
     created_at: t.timestamp().notNull().defaultNow(),
     updated_at: t.timestamp().notNull().defaultNow().onUpdateNow(),
   },
