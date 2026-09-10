@@ -42,6 +42,18 @@ export default function Forms() {
 
   const fields = useMemo(() => (selectedKey ? FORM_FIELDS[selectedKey] : []), [selectedKey]);
 
+  // Test Order Form: "Total Number of Candidates" is derived (new +
+  // rescheduled), not directly editable — see the `candidateCount` field
+  // in catalog.ts.
+  useEffect(() => {
+    if (selectedKey !== 'test-order') return;
+    const newCount = Number(values.newCandidateCount) || 0;
+    const rescheduledCount = values.hasRescheduledCandidates
+      ? Number(values.rescheduledCandidateCount) || 0
+      : 0;
+    setValues((prev) => ({ ...prev, candidateCount: newCount + rescheduledCount }));
+  }, [selectedKey, values.newCandidateCount, values.hasRescheduledCandidates, values.rescheduledCandidateCount]);
+
   function select(key: string) {
     setSelectedKey(key);
     setValues({});

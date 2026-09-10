@@ -61,23 +61,47 @@ export type Field =
 
 type E = Record<string, unknown>;
 
-const sec  = (label: string): Field => ({ kind: 'section', label });
-const sub  = (label: string): Field => ({ kind: 'subsection', label });
-const txt  = (id: string, label: string, o: E = {}): Field => ({ kind: 'input', id, label, type: 'text', ...o } as Field);
-const area = (id: string, label: string, o: E = {}): Field => ({ kind: 'input', id, label, type: 'textarea', ...o } as Field);
-const em   = (id: string, label: string, o: E = {}): Field => ({ kind: 'input', id, label, type: 'email', ...o } as Field);
-const ph   = (id: string, label: string, o: E = {}): Field => ({ kind: 'input', id, label, type: 'tel', ...o } as Field);
-const ul   = (id: string, label: string, placeholder = 'https://', o: E = {}): Field => ({ kind: 'input', id, label, type: 'url', placeholder, ...o } as Field);
-const nb   = (id: string, label: string, o: E = {}): Field => ({ kind: 'input', id, label, type: 'number', ...o } as Field);
-const df   = (id: string, label: string, o: E = {}): Field => ({ kind: 'input', id, label, type: 'date', ...o } as Field);
-const tf   = (id: string, label: string, o: E = {}): Field => ({ kind: 'input', id, label, type: 'time', ...o } as Field);
-const dtl  = (id: string, label: string, o: E = {}): Field => ({ kind: 'input', id, label, type: 'datetime-local', ...o } as Field);
-const rad  = (id: string, label: string, options: string[], o: E = {}): Field => ({ kind: 'choice', id, label, type: 'radio', options, ...o } as Field);
-const cbx  = (id: string, label: string, options: string[], o: E = {}): Field => ({ kind: 'choice', id, label, type: 'checkbox', options, ...o } as Field);
-const chk  = (id: string, label: string, o: E = {}): Field => ({ kind: 'check', id, label, ...o } as Field);
-const tbl  = (id: string, label: string, cols: ColDef[]): Field => ({ kind: 'table', id, label, columns: cols });
-const odf  = (id: string, label: string, o: E = {}): Field => ({ kind: 'onedrive-files', id, label, ...o } as Field);
-const rat  = (id: string, label: string, rows: string[], cols: string[]): Field => ({ kind: 'rating', id, label, rows, cols });
+const sec = (label: string): Field => ({ kind: 'section', label });
+const sub = (label: string): Field => ({ kind: 'subsection', label });
+const txt = (id: string, label: string, o: E = {}): Field =>
+  ({ kind: 'input', id, label, type: 'text', ...o }) as Field;
+const area = (id: string, label: string, o: E = {}): Field =>
+  ({ kind: 'input', id, label, type: 'textarea', ...o }) as Field;
+const em = (id: string, label: string, o: E = {}): Field =>
+  ({ kind: 'input', id, label, type: 'email', ...o }) as Field;
+const ph = (id: string, label: string, o: E = {}): Field =>
+  ({ kind: 'input', id, label, type: 'tel', ...o }) as Field;
+const ul = (id: string, label: string, placeholder = 'https://', o: E = {}): Field =>
+  ({ kind: 'input', id, label, type: 'url', placeholder, ...o }) as Field;
+const nb = (id: string, label: string, o: E = {}): Field =>
+  ({ kind: 'input', id, label, type: 'number', ...o }) as Field;
+const df = (id: string, label: string, o: E = {}): Field =>
+  ({ kind: 'input', id, label, type: 'date', ...o }) as Field;
+const tf = (id: string, label: string, o: E = {}): Field =>
+  ({ kind: 'input', id, label, type: 'time', ...o }) as Field;
+const dtl = (id: string, label: string, o: E = {}): Field =>
+  ({ kind: 'input', id, label, type: 'datetime-local', ...o }) as Field;
+const rad = (id: string, label: string, options: string[], o: E = {}): Field =>
+  ({ kind: 'choice', id, label, type: 'radio', options, ...o }) as Field;
+const cbx = (id: string, label: string, options: string[], o: E = {}): Field =>
+  ({ kind: 'choice', id, label, type: 'checkbox', options, ...o }) as Field;
+const chk = (id: string, label: string, o: E = {}): Field =>
+  ({ kind: 'check', id, label, ...o }) as Field;
+const tbl = (id: string, label: string, cols: ColDef[]): Field => ({
+  kind: 'table',
+  id,
+  label,
+  columns: cols,
+});
+const odf = (id: string, label: string, o: E = {}): Field =>
+  ({ kind: 'onedrive-files', id, label, ...o }) as Field;
+const rat = (id: string, label: string, rows: string[], cols: string[]): Field => ({
+  kind: 'rating',
+  id,
+  label,
+  rows,
+  cols,
+});
 
 /* ── Assessment block builder ──────────────────────────── */
 
@@ -91,28 +115,43 @@ type AssessOpts = {
 
 function assessBlock(prefix: string, title: string, opts: AssessOpts = {}): Field[] {
   const inc: ShowIf = { field: `${prefix}_include`, checked: true };
-  const fields: Field[] = [
-    sub(title),
-    chk(`${prefix}_include`, 'Include this assessment'),
-  ];
+  const fields: Field[] = [sub(title), chk(`${prefix}_include`, 'Include this assessment')];
   if (opts.hasAssessmentType)
-    fields.push(rad(`${prefix}_assType`, 'Assessment Type', ['MCQ', 'Essay', 'Both'], { showIf: inc }));
+    fields.push(
+      rad(`${prefix}_assType`, 'Assessment Type', ['MCQ', 'Essay', 'Both'], { showIf: inc }),
+    );
   if (opts.hasAssessmentSource) {
-    fields.push(rad(`${prefix}_source`, 'Assessment Source', ['Client-provided', 'In-house'], { showIf: inc }));
-    fields.push(txt(`${prefix}_inhouseAss`, 'In-house Assessment to be Deployed', { showIf: { field: `${prefix}_source`, is: 'In-house' } }));
+    fields.push(
+      rad(`${prefix}_source`, 'Assessment Source', ['Client-provided', 'In-house'], {
+        showIf: inc,
+      }),
+    );
+    fields.push(
+      txt(`${prefix}_inhouseAss`, 'In-house Assessment to be Deployed', {
+        showIf: { field: `${prefix}_source`, is: 'In-house' },
+      }),
+    );
   }
   if (opts.hasSimType) {
     fields.push(txt(`${prefix}_simType1`, 'Simulation Type 1', { showIf: inc }));
     fields.push(txt(`${prefix}_simType2`, 'Simulation Type 2 (optional)', { showIf: inc }));
   }
-  if (opts.hasOtherDesc)
-    fields.push(txt(`${prefix}_desc`, 'Describe the Need', { showIf: inc }));
+  if (opts.hasOtherDesc) fields.push(txt(`${prefix}_desc`, 'Describe the Need', { showIf: inc }));
   if (opts.hasMode) {
     fields.push(rad(`${prefix}_mode`, 'Test Mode', ['Physical', 'Online'], { showIf: inc }));
-    fields.push(txt(`${prefix}_locations`, 'If Physical – Preferred Locations', { showIf: { field: `${prefix}_mode`, is: 'Physical' } }));
+    fields.push(
+      txt(`${prefix}_locations`, 'If Physical – Preferred Locations', {
+        showIf: { field: `${prefix}_mode`, is: 'Physical' },
+      }),
+    );
   }
   fields.push(nb(`${prefix}_candidates`, 'Number of Candidates', { showIf: inc }));
-  fields.push(txt(`${prefix}_dates`, 'Preferred Assessment Dates', { placeholder: 'e.g. 15 Aug 2025, 16 Aug 2025', showIf: inc }));
+  fields.push(
+    txt(`${prefix}_dates`, 'Preferred Assessment Dates', {
+      placeholder: 'e.g. 15 Aug 2025, 16 Aug 2025',
+      showIf: inc,
+    }),
+  );
   fields.push(tf(`${prefix}_startTime`, 'Start Time', { showIf: inc }));
   fields.push(tf(`${prefix}_endTime`, 'End Time', { showIf: inc }));
   return fields;
@@ -122,10 +161,16 @@ function sharedAssessmentFields(): Field[] {
   return [
     sec('Testing: Assessment Types & Requirements'),
     ...assessBlock('pa', 'Personality Assessment (DPI – Online Un-proctored only)'),
-    ...assessBlock('sim', 'Simulation Assessment (Job Simulation Tool – Online only)', { hasSimType: true }),
+    ...assessBlock('sim', 'Simulation Assessment (Job Simulation Tool – Online only)', {
+      hasSimType: true,
+    }),
     ...assessBlock('gse', 'Graduate Standardization Examination (GSE)', { hasMode: true }),
     ...assessBlock('lgse', 'Lower GSE Assessment', { hasMode: true }),
-    ...assessBlock('fsa', 'Function-Specific Assessment', { hasAssessmentType: true, hasAssessmentSource: true, hasMode: true }),
+    ...assessBlock('fsa', 'Function-Specific Assessment', {
+      hasAssessmentType: true,
+      hasAssessmentSource: true,
+      hasMode: true,
+    }),
     ...assessBlock('cca', "Client's Custom Assessment", { hasAssessmentType: true, hasMode: true }),
     ...assessBlock('gat', 'GSE Aptitude Test', { hasMode: true }),
     ...assessBlock('lrt', 'Logical Reasoning Test', { hasMode: true }),
@@ -153,7 +198,6 @@ function sharedInterviewFields(): Field[] {
    ═══════════════════════════════════════════════════════════ */
 
 export const FORM_FIELDS: Record<string, Field[]> = {
-
   /* ── 1. Client Onboarding Form ─────────────────────────── */
   'client-onboarding': [
     sec('1. Company Information'),
@@ -239,7 +283,9 @@ export const FORM_FIELDS: Record<string, Field[]> = {
     ]),
 
     sec('9. Software Development'),
-    area('softwareBrief', 'Project Brief', { placeholder: 'Outline the objective and scope of your software development project' }),
+    area('softwareBrief', 'Project Brief', {
+      placeholder: 'Outline the objective and scope of your software development project',
+    }),
 
     sec('10. Additional Information'),
     area('additionalInfo', 'Any additional information'),
@@ -301,8 +347,16 @@ export const FORM_FIELDS: Record<string, Field[]> = {
     txt('dragnetContact', 'Dragnet Contact'),
 
     sub('Satisfaction Ratings'),
-    rat('ratings', 'Please rate your satisfaction',
-      ['Sales and Onboarding Process', 'Communication and Feedback', 'Responsiveness', 'Quality of Report', 'Overall Service Delivery'],
+    rat(
+      'ratings',
+      'Please rate your satisfaction',
+      [
+        'Sales and Onboarding Process',
+        'Communication and Feedback',
+        'Responsiveness',
+        'Quality of Report',
+        'Overall Service Delivery',
+      ],
       ['Excellent', 'Good', 'Average', 'Poor'],
     ),
 
@@ -342,7 +396,9 @@ export const FORM_FIELDS: Record<string, Field[]> = {
       required: true,
       placeholder: 'Explain the context and reason for this communication',
     }),
-    area('messageContent', 'Message Content', { placeholder: 'Enter message text or describe the content' }),
+    area('messageContent', 'Message Content', {
+      placeholder: 'Enter message text or describe the content',
+    }),
     rad('senderListAttached', 'Sender List Attached?', ['Yes', 'No']),
     dtl('executionDateTime', 'Preferred Execution Date & Time'),
     rad('urgencyLevel', 'Urgency Level', [
@@ -388,13 +444,21 @@ export const FORM_FIELDS: Record<string, Field[]> = {
     sec('B. Service Requirements'),
     sub('Services (Select all applicable)'),
     chk('svcOnlineJobHosting', 'Online Job Hosting'),
-    txt('svcOnlineJobDates', 'Planned Schedule / Dates', { showIf: { field: 'svcOnlineJobHosting', checked: true } }),
+    txt('svcOnlineJobDates', 'Planned Schedule / Dates', {
+      showIf: { field: 'svcOnlineJobHosting', checked: true },
+    }),
     chk('svcBannerCreation', 'Banner Creation'),
     chk('svcAdverts', 'Adverts and Social Media Campaigns'),
-    txt('svcAdvertsDates', 'Planned Schedule / Dates', { showIf: { field: 'svcAdverts', checked: true } }),
+    txt('svcAdvertsDates', 'Planned Schedule / Dates', {
+      showIf: { field: 'svcAdverts', checked: true },
+    }),
     chk('svcScreening', 'Screening and Shortlisting'),
-    txt('svcScreeningDates', 'Planned Schedule / Dates', { showIf: { field: 'svcScreening', checked: true } }),
-    nb('svcScreeningNumbers', 'Estimated Numbers', { showIf: { field: 'svcScreening', checked: true } }),
+    txt('svcScreeningDates', 'Planned Schedule / Dates', {
+      showIf: { field: 'svcScreening', checked: true },
+    }),
+    nb('svcScreeningNumbers', 'Estimated Numbers', {
+      showIf: { field: 'svcScreening', checked: true },
+    }),
 
     sub('Shortlisting Criteria'),
     txt('shortlistAge', 'Age'),
@@ -417,18 +481,29 @@ export const FORM_FIELDS: Record<string, Field[]> = {
 
     sec('Assessment Centres'),
     chk('acInclude', 'Include Assessment Centres'),
-    rad('acMode', 'Mode', ['Virtual', 'In-Person', 'Hybrid'], { showIf: { field: 'acInclude', checked: true } }),
-    cbx('acActivities', 'Activities', [
-      'Essays',
-      'Presentations',
-      'Office Tools Products',
-      'E-Basket (Behavioural Simulation Assessment)',
-      'Group Discussion',
-    ], { showIf: { field: 'acInclude', checked: true } }),
-    rad('acInterviewPanel', 'Interview Panel', ['Dragnet Panel', 'Client Panel', 'Joint Panel'], { showIf: { field: 'acInclude', checked: true } }),
+    rad('acMode', 'Mode', ['Virtual', 'In-Person', 'Hybrid'], {
+      showIf: { field: 'acInclude', checked: true },
+    }),
+    cbx(
+      'acActivities',
+      'Activities',
+      [
+        'Essays',
+        'Presentations',
+        'Office Tools Products',
+        'E-Basket (Behavioural Simulation Assessment)',
+        'Group Discussion',
+      ],
+      { showIf: { field: 'acInclude', checked: true } },
+    ),
+    rad('acInterviewPanel', 'Interview Panel', ['Dragnet Panel', 'Client Panel', 'Joint Panel'], {
+      showIf: { field: 'acInclude', checked: true },
+    }),
     txt('acSchedule', 'Planned Schedule/Dates', { showIf: { field: 'acInclude', checked: true } }),
     nb('acNumbers', 'Estimated Numbers', { showIf: { field: 'acInclude', checked: true } }),
-    txt('acNoShows', 'Conditions for Treatment of No-Shows', { showIf: { field: 'acInclude', checked: true } }),
+    txt('acNoShows', 'Conditions for Treatment of No-Shows', {
+      showIf: { field: 'acInclude', checked: true },
+    }),
 
     sec('C. Other Information'),
     rad('portalHost', 'Portal Host', ['Dragnet', 'Client']),
@@ -506,12 +581,16 @@ export const FORM_FIELDS: Record<string, Field[]> = {
 
     sec('9. Recruitment Process Details'),
     df('appDeadline', 'Application Deadline'),
-    area('recruitmentStages', 'Recruitment Stages', { placeholder: 'No. of interviews, types, assessments/tests' }),
+    area('recruitmentStages', 'Recruitment Stages', {
+      placeholder: 'No. of interviews, types, assessments/tests',
+    }),
     txt('decisionTimeline', 'Decision-Making Timeline'),
 
     sec('10. Job Advertisement / Banner Preferences'),
     df('adDeadline', 'Application Deadline (for ad)'),
-    txt('postingPlatforms', 'Job Posting Platforms', { placeholder: 'e.g. LinkedIn, Indeed, social media' }),
+    txt('postingPlatforms', 'Job Posting Platforms', {
+      placeholder: 'e.g. LinkedIn, Indeed, social media',
+    }),
     txt('advertisingBudget', 'Advertising Budget'),
     rad('confidentiality', 'Withhold Company Name from Ads?', ['Yes', 'No']),
     rad('salaryDisclosure', 'Disclose Salary in Ads?', ['Yes', 'No']),
@@ -520,7 +599,7 @@ export const FORM_FIELDS: Record<string, Field[]> = {
     rad('applicationMethod', 'Application Method', ['Follow Link', 'Send Email']),
     txt('applicationMethodValue', 'Application Link or Email'),
     rad('preferBarcode', 'Prefer a Barcode?', ['Yes', 'No']),
-    ul('clientWebsite', 'Link to Client\'s Website'),
+    ul('clientWebsite', "Link to Client's Website"),
 
     ...sharedAssessmentFields(),
     ...sharedInterviewFields(),
@@ -547,7 +626,9 @@ export const FORM_FIELDS: Record<string, Field[]> = {
     nb('noOfSessionsPerDay', 'No. of Sessions Per Day'),
     nb('capacityPerSession', 'Capacity Per Session Per Day'),
     nb('biometricPoints', 'Biometric Points Required Per Session (min. 3)'),
-    txt('datesRequired', 'Dates Required for Testing', { placeholder: 'e.g. 10 Aug – 14 Aug 2025' }),
+    txt('datesRequired', 'Dates Required for Testing', {
+      placeholder: 'e.g. 10 Aug – 14 Aug 2025',
+    }),
 
     sec('Sessions Detail'),
     tbl('testingSessions', 'Sessions (Day / Session / Expected Candidates)', [
@@ -572,16 +653,23 @@ export const FORM_FIELDS: Record<string, Field[]> = {
     sec('A. Customer Details'),
     txt('campaignIdField', 'Campaign ID'),
     txt('clientNameField', 'Client Name'),
-    cbx('verificationType', 'Type of Verification Required (select all that apply)', [
-      'Address Verification',
-      'Guarantor Verification',
-      'Academic Verification',
-      'Studentship Verification',
-      'Police Background Check',
-      'NYSC Verification',
-      'Others',
-    ], { required: true }),
-    txt('otherVerificationType', 'If Others – Specify', { showIf: { field: 'verificationType', is: 'Others' } }),
+    cbx(
+      'verificationType',
+      'Type of Verification Required (select all that apply)',
+      [
+        'Address Verification',
+        'Guarantor Verification',
+        'Academic Verification',
+        'Studentship Verification',
+        'Police Background Check',
+        'NYSC Verification',
+        'Others',
+      ],
+      { required: true },
+    ),
+    txt('otherVerificationType', 'If Others – Specify', {
+      showIf: { field: 'verificationType', is: 'Others' },
+    }),
     area('candidatesPerType', 'Number of Candidates per Verification Type', {
       hint: 'For each selected type, specify the number of candidates e.g. "Academic Verification: 45"',
     }),
@@ -594,7 +682,11 @@ export const FORM_FIELDS: Record<string, Field[]> = {
     }),
 
     sec('D. Data Protection & Consent'),
-    chk('dataConsent', 'I confirm all submitted data complies with consent requirements, is accurate and complete, and will be used solely for verification purposes.', { required: true }),
+    chk(
+      'dataConsent',
+      'I confirm all submitted data complies with consent requirements, is accurate and complete, and will be used solely for verification purposes.',
+      { required: true },
+    ),
 
     sec('E. Approval'),
     txt('requestingParty', 'Name of Requesting Party'),
@@ -605,16 +697,32 @@ export const FORM_FIELDS: Record<string, Field[]> = {
   'test-order': [
     sec('Test Details'),
     rad('testType', 'Test Type', ['Physical', 'Online', 'Hybrid'], { required: true }),
-    area('physicalLocations', 'If Physical – Specify Locations', { showIf: { field: 'testType', is: 'Physical' } }),
-    rad('proctoringOption', 'If Online – Proctoring Option', ['Proctored', 'Un-proctored'], { showIf: { field: 'testType', is: 'Online' } }),
-    nb('candidateCount', 'Number of Candidates'),
+    area('physicalLocations', 'If Physical – Specify Locations', {
+      showIf: { field: 'testType', is: 'Physical' },
+    }),
+    rad('proctoringOption', 'If Online – Proctoring Option', ['Proctored', 'Un-proctored'], {
+      showIf: { field: 'testType', is: 'Online' },
+    }),
+    nb('newCandidateCount', 'Number of New Candidates', { required: true }),
+    chk('hasRescheduledCandidates', 'Are there any rescheduled candidates?'),
+    nb('rescheduledCandidateCount', 'Number of Rescheduled Candidates', {
+      required: true,
+      showIf: { field: 'hasRescheduledCandidates', checked: true },
+    }),
+    // Auto-computed (new + rescheduled) — see the effect in Forms/index.tsx.
+    // Kept as the same field id the resource-scaling check in
+    // forms.service.ts already reads by name.
+    nb('candidateCount', 'Total Number of Candidates', { readonly: true }),
     rad('testingPlatform', 'Testing Platform', ['FOT', 'TESTHAVEN', 'DPI', 'HR AVATAR', 'Other']),
-    txt('otherPlatform', 'If Other – Specify Platform', { showIf: { field: 'testingPlatform', is: 'Other' } }),
+    txt('otherPlatform', 'If Other – Specify Platform', {
+      showIf: { field: 'testingPlatform', is: 'Other' },
+    }),
     rad('assessmentType', 'Assessment Type', ['MCQ', 'Essay', 'Both']),
     txt('assessmentDeployed', 'Assessment to be Deployed'),
     rad('assessmentSource', 'Assessment Source', ['In-house', 'Client']),
 
     sec('Testing Sessions'),
+    rad('testSession', 'Session Type', ['Day', 'Night']),
     tbl('testingSessions', 'Sessions', [
       { id: 'startDate', label: 'Start Date', type: 'date' },
       { id: 'endDate', label: 'End Date', type: 'date' },
@@ -624,7 +732,9 @@ export const FORM_FIELDS: Record<string, Field[]> = {
 
     rad('instantResult', 'Instant Result Display', ['Enable', 'Disable']),
     rad('deploySurvey', 'Deploy Survey?', ['Yes', 'No']),
-    ul('surveyLink', 'If Yes – Survey Link', 'https://', { showIf: { field: 'deploySurvey', is: 'Yes' } }),
+    ul('surveyLink', 'If Yes – Survey Link', 'https://', {
+      showIf: { field: 'deploySurvey', is: 'Yes' },
+    }),
     area('communicationTemplates', 'Communication Templates Provided'),
 
     sec('Additional Instructions / Requirements'),
@@ -680,8 +790,12 @@ export const FORM_FIELDS: Record<string, Field[]> = {
     area('keyResponsibilities', 'Key Responsibilities'),
     area('jobRequirements', 'Job Requirements'),
     rad('applicationMethod', 'Application Method', ['Follow Link', 'Send Email']),
-    ul('applyLink', 'Application Link (if Follow Link)', 'https://', { showIf: { field: 'applicationMethod', is: 'Follow Link' } }),
-    em('applyEmail', 'Application Email (if Send Email)', { showIf: { field: 'applicationMethod', is: 'Send Email' } }),
+    ul('applyLink', 'Application Link (if Follow Link)', 'https://', {
+      showIf: { field: 'applicationMethod', is: 'Follow Link' },
+    }),
+    em('applyEmail', 'Application Email (if Send Email)', {
+      showIf: { field: 'applicationMethod', is: 'Send Email' },
+    }),
     rad('barcodePreference', 'Do you prefer a barcode?', ['Yes', 'No']),
 
     sec('Advert Purpose'),
@@ -700,7 +814,12 @@ export const FORM_FIELDS: Record<string, Field[]> = {
     area('toneStyle', 'Tone and Style'),
     area('preferredColors', 'Preferred Colors / Branding Guidelines'),
     area('competitorInspiration', 'Competitors or Inspiration (links)'),
-    rad('callToAction', 'Call-to-Action (CTA)', ['Apply Now', 'Register Here', 'Learn More', 'Other']),
+    rad('callToAction', 'Call-to-Action (CTA)', [
+      'Apply Now',
+      'Register Here',
+      'Learn More',
+      'Other',
+    ]),
     txt('otherCTA', 'If Other CTA – specify', { showIf: { field: 'callToAction', is: 'Other' } }),
 
     sec('Image / Graphic Design'),
@@ -722,9 +841,16 @@ export const FORM_FIELDS: Record<string, Field[]> = {
 
     sec('Distribution Channels & Deadlines'),
     cbx('assetUsage', 'Where will the asset be used?', [
-      'Website', 'Social Media', 'Email Campaigns', 'Paid Ads', 'Print', 'Other',
+      'Website',
+      'Social Media',
+      'Email Campaigns',
+      'Paid Ads',
+      'Print',
+      'Other',
     ]),
-    txt('socialPlatforms', 'If Social Media – Specify Platforms', { showIf: { field: 'assetUsage', is: 'Social Media' } }),
+    txt('socialPlatforms', 'If Social Media – Specify Platforms', {
+      showIf: { field: 'assetUsage', is: 'Social Media' },
+    }),
     txt('assetTimeline', 'Asset Usage Timeline'),
     rad('adPlacement', 'Ad Placement Preferences', ['Feed', 'Stories', 'Both', 'Other']),
 
@@ -758,7 +884,11 @@ export const FORM_FIELDS: Record<string, Field[]> = {
       'Interview Scheduling',
       'Other',
     ]),
-    rad('portalLayout', 'Preferred Portal Layout', ['Single Page', 'Multi-Page (Tabs)', 'Dashboard-based']),
+    rad('portalLayout', 'Preferred Portal Layout', [
+      'Single Page',
+      'Multi-Page (Tabs)',
+      'Dashboard-based',
+    ]),
     area('userPermissions', 'User Types & Permissions'),
     area('portalContent', 'Portal Content & Sections'),
     area('aboutClient', 'About the Client'),
@@ -769,7 +899,9 @@ export const FORM_FIELDS: Record<string, Field[]> = {
     txt('preferredPlatform', 'Preferred Portal Platform'),
     area('thirdPartyIntegrations', 'Third-Party Integrations'),
     rad('hostingPreference', 'Hosting Preference', ['AWS', 'Azure', 'Custom Hosting', 'Other']),
-    txt('otherHosting', 'If Other – Specify', { showIf: { field: 'hostingPreference', is: 'Other' } }),
+    txt('otherHosting', 'If Other – Specify', {
+      showIf: { field: 'hostingPreference', is: 'Other' },
+    }),
     area('additionalNotes', 'Additional Customization & Notes'),
     area('designNotes', 'Additional Design Notes / Custom Requests'),
     df('launchDeadline', 'Deadline for Portal Launch'),
