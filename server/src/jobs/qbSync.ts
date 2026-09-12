@@ -3,6 +3,7 @@ import { getAccessToken } from './qbOAuth';
 import { queryAllAccountsAndCustomers } from '../services/qbClient.service';
 import { syncAccountFromQB, syncClientFromQB, type SyncResult } from '../services/qbSync.service';
 import { updateQbTokens } from '../models/qbTokens';
+import { QB_SYNC_CRON } from '@shared/jobs';
 
 function tally(results: SyncResult[]): Partial<Record<SyncResult, number>> {
   const counts: Partial<Record<SyncResult, number>> = {};
@@ -64,7 +65,7 @@ async function runSyncGuarded(trigger: 'startup' | 'scheduled'): Promise<void> {
 
 export function scheduleQbSync(): void {
   console.log('[QB Sync] scheduling run');
-  cron.schedule('0 8 * * *', () => {
+  cron.schedule(QB_SYNC_CRON, () => {
     void runSyncGuarded('scheduled');
   });
   void runSyncGuarded('startup');

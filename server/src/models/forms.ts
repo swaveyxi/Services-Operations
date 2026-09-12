@@ -1,4 +1,4 @@
-import { and, desc, eq, getTableColumns, inArray } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import { db } from '../db/database';
 import { supportForms, users, campaigns } from '../db/schema';
 import {
@@ -118,6 +118,29 @@ export async function findHandoffsByTeam(teamKey: string): Promise<FormRowWithHa
   }
 
   return forms.map((f) => ({ ...f, handoffs: handoffsByForm.get(f.id) ?? [] }));
+}
+
+// For the Jobs Report: per-(unit, team, status) counts across every visible
+// campaign's forms, in one grouped query rather than loading every row.
+export type FormsStatusCount = {
+  unit: string;
+  operations_team: string;
+  delivery_status: FormRow['delivery_status'];
+  count: number;
+};
+
+export async function getFormsStatusBreakdown(): Promise<FormsStatusCount[]> {
+  return db
+    .select({
+      unit: campaigns.unit,
+      operations_team: supportForms.operations_team,
+      delivery_status: supportForms.delivery_status,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(supportForms)
+    .innerJoin(campaigns, eq(supportForms.campaign_id, campaigns.id))
+    .where(visibleCampaign())
+    .groupBy(campaigns.unit, supportForms.operations_team, supportForms.delivery_status);
 }
 
 export async function createForm(data: FormInsert): Promise<void> {

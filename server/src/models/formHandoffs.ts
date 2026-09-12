@@ -1,4 +1,4 @@
-import { and, asc, eq, getTableColumns, inArray, ne } from 'drizzle-orm';
+import { and, asc, eq, getTableColumns, inArray, ne, sql } from 'drizzle-orm';
 import { db } from '../db/database';
 import { formHandoffs, supportForms, campaigns } from '../db/schema';
 
@@ -75,6 +75,24 @@ export async function findPendingScalingHandoffs(): Promise<HandoffRow[]> {
         inArray(formHandoffs.status, ['Pending', 'Acknowledged']),
       ),
     );
+}
+
+// For the Jobs Report: per-(team, status) handoff counts across every visible
+// campaign, mirroring getFormsStatusBreakdown in models/forms.ts.
+export type HandoffsStatusCount = { team: string; status: HandoffRow['status']; count: number };
+
+export async function getHandoffsStatusBreakdown(): Promise<HandoffsStatusCount[]> {
+  return db
+    .select({
+      team: formHandoffs.team,
+      status: formHandoffs.status,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(formHandoffs)
+    .innerJoin(supportForms, eq(formHandoffs.form_id, supportForms.id))
+    .innerJoin(campaigns, eq(supportForms.campaign_id, campaigns.id))
+    .where(and(eq(campaigns.is_deleted, false), eq(campaigns.is_archived, false)))
+    .groupBy(formHandoffs.team, formHandoffs.status);
 }
 
 // Check if a form has an active (non-Completed) handoff to a specific team.

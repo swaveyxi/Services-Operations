@@ -3,6 +3,7 @@ import { findPendingScalingHandoffs, updateHandoff, type HandoffRow } from '../m
 import { findFormById } from '../models/forms';
 import { findCampaignById } from '../models/campaigns';
 import { RESOURCE_SCALING_CANDIDATE_THRESHOLD } from '../../../shared/constants';
+import { SCALING_REMINDERS_CRON } from '../../../shared/jobs';
 import {
   notifyResourceScalingReminder,
   notifyResourceScalingEscalation,
@@ -113,7 +114,7 @@ async function runReminderCheck(): Promise<void> {
 
 export function scheduleScalingReminders(): void {
   console.log(`[Scaling Reminders] scheduling SLA checks (every ${CHECK_INTERVAL_MIN} min)`);
-  cron.schedule('0 */1 * * *', () => {
+  cron.schedule(SCALING_REMINDERS_CRON, () => {
     void runReminderCheck();
   });
 }

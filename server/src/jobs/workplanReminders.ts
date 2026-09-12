@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { getOpsTeam } from '@shared/constants';
+import { WORKPLAN_REMINDERS_CRON } from '@shared/jobs';
 import { findWorkplansByStatus } from '../models/workplans';
 import { findCampaignById } from '../models/campaigns';
 import { findUserById } from '../models/users';
@@ -70,7 +71,7 @@ async function runReminderCheck(): Promise<void> {
 
 export function scheduleWorkplanReminders(): void {
   console.log('[Workplan Reminders] scheduling hourly reminder');
-  cron.schedule('0 * * * *', () => {
+  cron.schedule(WORKPLAN_REMINDERS_CRON, () => {
     void runReminderCheck();
   });
 }

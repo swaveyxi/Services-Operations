@@ -4,6 +4,7 @@ import { findUserById } from '../models/users';
 import { notifyMDApprovalReminder } from '../services/email.service';
 import { autoApproveIfEligible } from '../services/campaigns.service';
 import { AUTO_APPROVE_THRESHOLD } from '../../../shared/constants';
+import { MD_APPROVAL_REMINDERS_CRON } from '../../../shared/jobs';
 
 // ─── Scheduler ────────────────────────────────────────────────────────────────
 // Daily nudge for campaigns still awaiting MD approval — no escalation tier,
@@ -63,7 +64,7 @@ async function runReminderCheck(): Promise<void> {
 
 export function scheduleMdApprovalReminders(): void {
   console.log('[MD Approval Reminders] scheduling daily reminder (09:00)');
-  cron.schedule('0 9 * * *', () => {
+  cron.schedule(MD_APPROVAL_REMINDERS_CRON, () => {
     void runReminderCheck();
   });
 }

@@ -3,7 +3,13 @@
 
 import { graphSendMail } from './graph';
 import { findUsersByRole } from '../models/users';
-import { EXCO_ROLE, getBusinessUnitTeam, type BusinessUnit } from '@shared/constants';
+import {
+  EXCO_ROLE,
+  MD_ROLE,
+  COO_ROLE,
+  getBusinessUnitTeam,
+  type BusinessUnit,
+} from '@shared/constants';
 import {
   pendingMDApprovalEmail,
   pendingMDApprovalReminderEmail,
@@ -29,6 +35,7 @@ import {
   resourceScalingCompletedEmail,
   resourceScalingReminderEmail,
   resourceScalingEscalationEmail,
+  jobsWeeklyDigestEmail,
   type WorkplanSubmittedData,
   type WorkplanAmendedData,
   type WorkplanAcceptedData,
@@ -54,6 +61,7 @@ import {
   type ResourceScalingReminderData,
   type ResourceScalingEscalationData,
 } from './email.templates';
+import type { JobsReport } from '../../../shared/types';
 import { findTeamByName, findTeamMembers } from '../models/teams';
 import { findUserById } from '../models/users';
 
@@ -95,7 +103,9 @@ async function teamRecipients(teamName: string): Promise<string[]> {
   if (team.group_email) return [team.group_email];
   const members = await findTeamMembers(team.team_key);
   if (!members.length) {
-    console.warn(`[EMAIL] team "${teamName}" has no members assigned — notification silently dropped`);
+    console.warn(
+      `[EMAIL] team "${teamName}" has no members assigned — notification silently dropped`,
+    );
   }
   return members.map((m) => m.email);
 }
@@ -212,7 +222,10 @@ export async function notifyMDApprovalReminder(d: PendingMDApprovalReminderData)
 /* Full case report (approved or rejected) — goes to the owner, the business
    unit's ops team, Finance, exco-role users, and md-role users, all at once
    (deduped). Same recipient set for both outcomes. */
-async function fullCaseReportRecipients(ownerUserId: string, unit: BusinessUnit): Promise<string[]> {
+async function fullCaseReportRecipients(
+  ownerUserId: string,
+  unit: BusinessUnit,
+): Promise<string[]> {
   const [owner, unitTeam, financeTeam, excoUsers, mdUsers] = await Promise.all([
     ownerEmail(ownerUserId),
     teamRecipients(getBusinessUnitTeam(unit)),
@@ -332,7 +345,10 @@ export async function notifyHandoffCompleted(
    deduped. The case owner alone isn't enough now that any team member can
    act on a unit's cases (see "My Unit's Cases") — everyone on the team needs
    to see form status updates, not just whoever happens to be the owner. */
-async function ownerAndUnitTeamRecipients(ownerUserId: string, unit: BusinessUnit): Promise<string[]> {
+async function ownerAndUnitTeamRecipients(
+  ownerUserId: string,
+  unit: BusinessUnit,
+): Promise<string[]> {
   const [owner, unitTeam] = await Promise.all([
     ownerEmail(ownerUserId),
     teamRecipients(getBusinessUnitTeam(unit)),
@@ -378,10 +394,7 @@ export async function notifyTestSessionsUpdated(
   d: TestSessionsUpdatedData,
   opsTeamName: string,
 ): Promise<void> {
-  const [opsTo, ceTo] = await Promise.all([
-    teamRecipients(opsTeamName),
-    teamRecipients(CE_TEAM),
-  ]);
+  const [opsTo, ceTo] = await Promise.all([teamRecipients(opsTeamName), teamRecipients(CE_TEAM)]);
   const to = [...new Set([...opsTo, ...ceTo])];
   if (!to.length) return;
   const { subject, html } = testSessionsUpdatedEmail(d);
@@ -409,9 +422,7 @@ export async function notifyResourceScalingCompleted(
   await deliver(email, subject, html);
 }
 
-export async function notifyResourceScalingReminder(
-  d: ResourceScalingReminderData,
-): Promise<void> {
+export async function notifyResourceScalingReminder(d: ResourceScalingReminderData): Promise<void> {
   const to = await cloudRoleRecipients(TECH_TEAM);
   if (!to.length) return;
   const { subject, html } = resourceScalingReminderEmail(d);
@@ -436,9 +447,26 @@ export async function notifyResourceScalingSessionsUpdated(
   await deliver(to, subject, html);
 }
 
+// ─── Jobs Report ──────────────────────────────────────────────────────────────
+
+export async function notifyJobsWeeklyDigest(d: JobsReport): Promise<void> {
+  const [mds, coos] = await Promise.all([findUsersByRole(MD_ROLE), findUsersByRole(COO_ROLE)]);
+  const to = [...new Set([...mds, ...coos].map((u) => u.email).filter(Boolean))];
+  if (!to.length) {
+    console.warn('[EMAIL] notifyJobsWeeklyDigest: no users with role "md" or "coo" found');
+    return;
+  }
+  const { subject, html } = jobsWeeklyDigestEmail(d);
+  await deliver(to, subject, html);
+}
+
 // ─── Legacy compat — kept so old direct call sites still compile ──────────────
 
-export async function sendEmail(to: string | string[], subject: string, html: string): Promise<void> {
+export async function sendEmail(
+  to: string | string[],
+  subject: string,
+  html: string,
+): Promise<void> {
   await deliver(to, subject, html);
 }
 

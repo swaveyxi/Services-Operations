@@ -19,6 +19,7 @@ import { scheduleQbSync } from './jobs/qbSync';
 import { scheduleScalingReminders } from './jobs/scalingReminders';
 import { scheduleMdApprovalReminders } from './jobs/mdApprovalReminders';
 import { scheduleWorkplanReminders } from './jobs/workplanReminders';
+import { scheduleJobsWeeklyDigest } from './jobs/jobsWeeklyDigest';
 import { isProduction } from '@shared/constants';
 
 const app = express();
@@ -111,6 +112,7 @@ const start = async () => {
     scheduleScalingReminders();
     scheduleMdApprovalReminders();
     scheduleWorkplanReminders();
+    scheduleJobsWeeklyDigest();
 
     app.listen(port, () => {
       console.log(`[Server] server running on: ${port}`);

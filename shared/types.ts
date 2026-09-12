@@ -145,6 +145,33 @@ export type ParentAccount = {
   service_type: string | null;
 };
 
+export type JobsReportBreakdown = {
+  key: string;
+  open: number;
+  completed: number;
+  total: number;
+};
+
+// "Jobs" = support_forms + their handoffs — the operational work items tracked
+// per campaign. Snapshot, not a date-range delta: totals reflect every
+// non-archived, non-deleted campaign's jobs as they stand right now.
+export type JobsReport = {
+  generated_at: string;
+  forms: {
+    total: number;
+    open: number;
+    completed: number;
+    by_unit: JobsReportBreakdown[];
+    by_team: JobsReportBreakdown[];
+  };
+  handoffs: {
+    total: number;
+    open: number;
+    completed: number;
+    by_team: JobsReportBreakdown[];
+  };
+};
+
 export type UserInfo = {
   id?: string;
   name: string;

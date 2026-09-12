@@ -7,6 +7,7 @@ import {
   listAllForms,
   listUsers,
   getClientById,
+  getJobsReport,
 } from '@/services';
 import type {
   Campaign,
@@ -14,6 +15,8 @@ import type {
   SupportForm,
   ClientContact,
   OpsUser,
+  JobsReport,
+  JobsReportBreakdown,
 } from '@shared/types';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Pager } from '@/components/Pager';
@@ -29,12 +32,13 @@ import {
   OPERATIONS_ADMIN_ROLE,
   SUPER_ADMIN_ROLE,
 } from '@shared/constants';
-import { ciEq, formatDate, formatCurrency, titleCase } from '@/utils/format';
+import { ciEq, formatDate, formatDateLong, formatCurrency, titleCase } from '@/utils/format';
 import { toCampaignDisplayStatus } from '@/utils/status';
 import { computeProfitability } from '@/utils/profitability';
 import s from './OrgDashboard.module.css';
 
 const PAGE = 5;
+const JOBS_PAGE = 10;
 
 export default function Admin() {
   const { hasRole } = useAuth();
@@ -47,12 +51,14 @@ export default function Admin() {
   const [forms, setForms] = useState<SupportForm[]>([]);
   const [clientMap, setClientMap] = useState<Record<string, ClientContact>>({});
   const [userMap, setUserMap] = useState<Record<string, OpsUser>>({});
+  const [jobsReport, setJobsReport] = useState<JobsReport | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [q, setQ] = useState('');
   const [unit, setUnit] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [jobsPage, setJobsPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
   const [activeForm, setActiveForm] = useState<SupportForm | null>(null);
   const [activeWorkplan, setActiveWorkplan] = useState<ConfiguredWorkplan | null>(null);
@@ -63,24 +69,27 @@ export default function Admin() {
       void navigate('/', { replace: true });
       return;
     }
-    Promise.all([listCampaigns(), listAllWorkplans(), listAllForms(), listUsers()]).then(
-      async ([c, w, f, users]) => {
-        setCampaigns(c);
-        setWorkplans(w);
-        setForms(f);
-        setUserMap(Object.fromEntries(users.map((u) => [u.id, u])));
-        const uniqueClientIds = [...new Set(c.map((x) => x.client_id).filter(Boolean))] as string[];
-        const clientEntries = await Promise.all(
-          uniqueClientIds.map((id) =>
-            getClientById(id).then((cl) => (cl ? ([id, cl] as const) : null)),
-          ),
-        );
-        setClientMap(
-          Object.fromEntries(clientEntries.filter(Boolean) as [string, ClientContact][]),
-        );
-        setLoading(false);
-      },
-    );
+    Promise.all([
+      listCampaigns(),
+      listAllWorkplans(),
+      listAllForms(),
+      listUsers(),
+      getJobsReport(),
+    ]).then(async ([c, w, f, users, report]) => {
+      setCampaigns(c);
+      setWorkplans(w);
+      setForms(f);
+      setUserMap(Object.fromEntries(users.map((u) => [u.id, u])));
+      setJobsReport(report);
+      const uniqueClientIds = [...new Set(c.map((x) => x.client_id).filter(Boolean))] as string[];
+      const clientEntries = await Promise.all(
+        uniqueClientIds.map((id) =>
+          getClientById(id).then((cl) => (cl ? ([id, cl] as const) : null)),
+        ),
+      );
+      setClientMap(Object.fromEntries(clientEntries.filter(Boolean) as [string, ClientContact][]));
+      setLoading(false);
+    });
   }, [canAccess, navigate]);
 
   const stats = useMemo(
@@ -105,6 +114,22 @@ export default function Admin() {
 
   useEffect(() => setPage(1), [q, unit, status]);
   const pageItems = filtered.slice((page - 1) * PAGE, page * PAGE);
+
+  // Itemized job list for the Jobs Report — joins each support form back to its
+  // campaign (and client) so the report names names, not just counts. Open jobs
+  // surface first since they're what needs attention; newest-first within that.
+  const jobsList = useMemo(() => {
+    const campaignById = new Map(campaigns.map((c) => [c.id, c]));
+    return forms
+      .map((f) => ({ form: f, campaign: campaignById.get(f.campaign_id) ?? null }))
+      .sort((a, b) => {
+        const aOpen = a.form.delivery_status !== 'Completed';
+        const bOpen = b.form.delivery_status !== 'Completed';
+        if (aOpen !== bOpen) return aOpen ? -1 : 1;
+        return (b.form.submitted_on ?? '').localeCompare(a.form.submitted_on ?? '');
+      });
+  }, [forms, campaigns]);
+  const jobsPageItems = jobsList.slice((jobsPage - 1) * JOBS_PAGE, jobsPage * JOBS_PAGE);
 
   if (!canAccess) return null;
   if (loading) return <div className='loading-state'>Loading dashboard…</div>;
@@ -288,6 +313,93 @@ export default function Admin() {
         </>
       )}
 
+      {jobsReport && (
+        <div className='card card-pad' style={{ marginTop: 'var(--space-6)' }}>
+          <div className='section-head'>
+            <h2 className='section-title'>Jobs Report</h2>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--c-text)' }}>
+              As of {formatDateLong(jobsReport.generated_at)}
+            </span>
+          </div>
+          <div className={s.stats}>
+            <Stat value={jobsReport.forms.total} label='Total Jobs' />
+            <Stat value={jobsReport.forms.open} label='Open Jobs' />
+            <Stat value={jobsReport.forms.completed} label='Completed Jobs' />
+            <Stat value={jobsReport.handoffs.open} label='Open Handoffs' />
+          </div>
+          <JobsBreakdownTable title='By Business Unit' rows={jobsReport.forms.by_unit} />
+          <JobsBreakdownTable title='By Operations Team' rows={jobsReport.forms.by_team} />
+          <JobsBreakdownTable title='Handoffs By Team' rows={jobsReport.handoffs.by_team} />
+
+          <div className='eyebrow' style={{ marginTop: 24, marginBottom: 8 }}>
+            All Jobs ({jobsList.length})
+          </div>
+          {jobsList.length === 0 ? (
+            <p className='muted'>No jobs recorded.</p>
+          ) : (
+            <>
+              <div className='table-wrap'>
+                <table className='table'>
+                  <thead>
+                    <tr>
+                      <th>Campaign</th>
+                      <th>Client</th>
+                      <th>Job Type</th>
+                      <th>Team</th>
+                      <th>Status</th>
+                      <th>Submitted</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {jobsPageItems.map(({ form, campaign }) => {
+                      const title =
+                        FORM_CATALOG_META[FORM_TITLE_TO_KEY[form.form_type]]?.title ||
+                        form.form_type;
+                      return (
+                        <tr
+                          key={form.id}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setActiveForm(form)}
+                        >
+                          <td className='mono'>{campaign?.campaign_id ?? '—'}</td>
+                          <td>
+                            {campaign?.client_id
+                              ? (clientMap[campaign.client_id]?.display_name ?? '—')
+                              : '—'}
+                          </td>
+                          <td>{title}</td>
+                          <td>{form.operations_team}</td>
+                          <td>
+                            <StatusBadge
+                              kind='delivery'
+                              value={form.delivery_status}
+                              submittedOn={form.submitted_on}
+                            />
+                          </td>
+                          <td
+                            className='mono'
+                            style={{ fontSize: '0.78rem', color: 'var(--c-text-muted)' }}
+                          >
+                            {formatDate(form.submitted_on)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <Pager
+                page={jobsPage}
+                pageSize={JOBS_PAGE}
+                totalItems={jobsList.length}
+                noun='jobs'
+                onPage={setJobsPage}
+              />
+            </>
+          )}
+        </div>
+      )}
+
       {activeForm && (
         <Modal
           title={
@@ -324,6 +436,39 @@ function Stat({ value, label }: { value: number; label: string }) {
     <div className={s.stat}>
       <div className={s.statVal}>{value}</div>
       <div className={s.statLabel}>{label}</div>
+    </div>
+  );
+}
+
+function JobsBreakdownTable({ title, rows }: { title: string; rows: JobsReportBreakdown[] }) {
+  if (!rows.length) return null;
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div className='eyebrow' style={{ marginBottom: 8 }}>
+        {title}
+      </div>
+      <div className='table-wrap'>
+        <table className='table'>
+          <thead>
+            <tr>
+              <th></th>
+              <th style={{ textAlign: 'right' }}>Open</th>
+              <th style={{ textAlign: 'right' }}>Completed</th>
+              <th style={{ textAlign: 'right' }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.key}>
+                <td>{r.key}</td>
+                <td style={{ textAlign: 'right' }}>{r.open}</td>
+                <td style={{ textAlign: 'right' }}>{r.completed}</td>
+                <td style={{ textAlign: 'right', fontWeight: 600 }}>{r.total}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

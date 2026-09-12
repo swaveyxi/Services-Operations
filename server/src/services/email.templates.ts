@@ -2,7 +2,7 @@
 // Each function returns { subject, html }.
 
 import type { BusinessUnit } from '@shared/constants';
-import type { OneDriveFile } from '../../../shared/types';
+import type { OneDriveFile, JobsReport, JobsReportBreakdown } from '../../../shared/types';
 
 const APP_URL = process.env.APP_URL;
 
@@ -809,5 +809,71 @@ export function resourceScalingEscalationEmail(d: ResourceScalingEscalationData)
       <p style="margin:12px 0 0;font-size:13px;color:#666;">Please ensure the scaling action is completed and documented in the system before the sessions begin.</p>
       ${cta('View in Operations', opsUrl('Tech'))}
     `),
+  };
+}
+
+// ─── Jobs Report ──────────────────────────────────────────────────────────────
+
+function jobsBreakdownTable(title: string, rows: JobsReportBreakdown[]): string {
+  if (!rows.length) return '';
+  const trs = rows
+    .map(
+      (r) => `<tr>
+        <td style="padding:8px 10px 8px 0;font-size:13px;color:#222;">${r.key}</td>
+        <td style="padding:8px 10px;font-size:13px;color:#c41e1e;font-weight:600;text-align:right;">${r.open}</td>
+        <td style="padding:8px 10px;font-size:13px;color:#1a7f37;font-weight:600;text-align:right;">${r.completed}</td>
+        <td style="padding:8px 0 8px 10px;font-size:13px;color:#222;font-weight:700;text-align:right;">${r.total}</td>
+      </tr>`,
+    )
+    .join('');
+  return `
+    <p style="margin:20px 0 6px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#888;">${title}</p>
+    <table role="presentation" style="width:100%;border-collapse:collapse;border-top:1px solid #e5e7eb;">
+      <thead><tr>
+        <th style="padding:8px 10px 8px 0;font-size:12px;text-align:left;color:#999;"></th>
+        <th style="padding:8px 10px;font-size:12px;text-align:right;color:#999;">Open</th>
+        <th style="padding:8px 10px;font-size:12px;text-align:right;color:#999;">Completed</th>
+        <th style="padding:8px 0 8px 10px;font-size:12px;text-align:right;color:#999;">Total</th>
+      </tr></thead>
+      <tbody>${trs}</tbody>
+    </table>`;
+}
+
+export function jobsWeeklyDigestEmail(d: JobsReport) {
+  const dateStr = new Date(d.generated_at).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  return {
+    subject: `Weekly Jobs Digest — ${dateStr}`,
+    html: layout(
+      `
+      <h2 style="margin:0 0 14px;font-size:20px;color:#0f1c2e;font-weight:700;">Weekly Jobs Digest</h2>
+      <p style="margin:0;">A snapshot of all operational jobs — briefing forms and their handoffs — across the org, as of ${dateStr}.</p>
+      <p style="margin:10px 0 0;font-size:13px;color:#666;">A "job" is a briefing form submitted against a case (e.g. a Test Order Form) as it moves through delivery: Submitted &rarr; Delivered &rarr; Acknowledged &rarr; Completed. <strong>Open</strong> means anything not yet Completed; <strong>Completed</strong> means it's been fully closed out.</p>
+
+      <p style="margin:20px 0 0;padding:14px;background:#f7f7f7;border-radius:6px;font-size:14px;color:#222;">
+        <strong>Total Jobs:</strong> ${d.forms.total} &nbsp;·&nbsp;
+        <strong>Open:</strong> <span style="color:#c41e1e;font-weight:700;">${d.forms.open}</span> &nbsp;·&nbsp;
+        <strong>Completed:</strong> <span style="color:#1a7f37;font-weight:700;">${d.forms.completed}</span>
+      </p>
+      <p style="margin:12px 0 0;font-size:13px;color:#666;">The tables below split those same totals by business unit and by operations team, so you can see at a glance where work is concentrated and where it's backing up.</p>
+      ${jobsBreakdownTable('By Business Unit', d.forms.by_unit)}
+      ${jobsBreakdownTable('By Operations Team', d.forms.by_team)}
+
+      <p style="margin:24px 0 0;font-size:13px;color:#666;">Separately, a <strong>handoff</strong> is when a job is routed from one operations team to another (e.g. Testing Operations handing a job to Tech for resource scaling) — tracked on its own, independent of the job's own delivery status above.</p>
+      <p style="margin:12px 0 0;padding:14px;background:#f7f7f7;border-radius:6px;font-size:14px;color:#222;">
+        <strong>Total Handoffs:</strong> ${d.handoffs.total} &nbsp;·&nbsp;
+        <strong>Open:</strong> <span style="color:#c41e1e;font-weight:700;">${d.handoffs.open}</span> &nbsp;·&nbsp;
+        <strong>Completed:</strong> <span style="color:#1a7f37;font-weight:700;">${d.handoffs.completed}</span>
+      </p>
+      ${jobsBreakdownTable('Handoffs Received By Team (Jobs handedoff from other teams)', d.handoffs.by_team)}
+
+      <p style="margin:20px 0 0;font-size:13px;color:#666;">Archived and deleted cases are excluded from these totals.</p>
+      ${cta('View Org Dashboard', `${APP_URL}/org-dashboard`)}
+    `,
+      720,
+    ),
   };
 }

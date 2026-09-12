@@ -9,6 +9,15 @@ export function formatDate(iso: string | null | undefined): string {
   return `${dd}-${mm}-${d.getFullYear()}`;
 }
 
+/* Friendlier, more legible variant for report headers/timestamps ("12 Sep 2026"
+   rather than "12-09-2026"). */
+export function formatDateLong(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 export function formatCurrency(amount: number | string | null | undefined): string {
   const n = typeof amount === 'number' ? amount : parseFloat(String(amount ?? 0)) || 0;
   return '₦' + n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

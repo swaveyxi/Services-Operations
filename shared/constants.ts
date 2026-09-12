@@ -62,7 +62,9 @@ export const TEAM_TO_BUSINESS_UNIT_MAP: Partial<Record<string, BusinessUnit>> = 
 export function getBusinessUnitsForTeams(teamNames: string[]): BusinessUnit[] {
   return [
     ...new Set(
-      teamNames.map((t) => TEAM_TO_BUSINESS_UNIT_MAP[t]).filter((u): u is BusinessUnit => Boolean(u)),
+      teamNames
+        .map((t) => TEAM_TO_BUSINESS_UNIT_MAP[t])
+        .filter((u): u is BusinessUnit => Boolean(u)),
     ),
   ];
 }
@@ -109,6 +111,8 @@ export const HANDOFF_DEFAULTS: Record<string, string> = {
 
 /* ERP org_role that can approve profitability assessments. */
 export const MD_ROLE = 'md' as const;
+
+export const COO_ROLE = 'coo' as const;
 
 /* ERP org_role for executive committee members — copied on full case-approval reports. */
 export const EXCO_ROLE = 'exco' as const;
