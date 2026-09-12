@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useServiceCall } from '@/hooks/useServiceCall';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   getCampaign,
   listWorkplansForCampaign,
@@ -317,11 +317,24 @@ export default function Tracker() {
       )}
 
       <div className={s.grid}>
-        <div className='card card-pad'>
+        <div
+          className='card card-pad'
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 'var(--space-4)',
+            flexWrap: 'wrap',
+          }}
+        >
           <LifecyclePipeline
             approval_status={c.approval_status ?? ''}
             campaign_status={c.campaign_status}
           />
+          <Link to={`/atlas/${c.id}`} className='btn btn-secondary'>
+            <i className='fa-solid fa-diagram-project' aria-hidden='true' /> Access Campaign
+            Dashboard
+          </Link>
         </div>
 
         <div className='card card-pad'>

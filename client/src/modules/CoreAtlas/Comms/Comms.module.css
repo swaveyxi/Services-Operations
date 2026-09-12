@@ -1,0 +1,371 @@
+.toolbar {
+  display: flex;
+  gap: var(--space-2);
+}
+.channelTabs {
+  display: flex;
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.channelTab {
+  border: 0;
+  background: transparent;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--c-text-muted);
+  cursor: pointer;
+  border-right: 1px solid var(--c-border-mid);
+}
+.channelTab:last-child {
+  border-right: 0;
+}
+.channelTab.active {
+  background: var(--c-canvas);
+  color: var(--c-text);
+}
+
+/* ─── Metrics ──────────────────────────────────────────────────────── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+  margin-bottom: var(--space-5);
+}
+.metric {
+  padding: var(--space-4) var(--space-5);
+}
+.metric.divider {
+  border-left: 1px solid var(--c-border);
+}
+.metricValue {
+  font-family: var(--font-mono);
+  font-size: 1.7rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-top: var(--space-2);
+}
+.metricSub {
+  font-size: 0.7rem;
+  color: var(--c-text-muted);
+  margin-top: var(--space-1);
+}
+
+/* ─── Platform table ───────────────────────────────────────────────── */
+.platformIcon {
+  width: 24px;
+  height: 24px;
+  background: var(--c-navy);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+.platformRow {
+  cursor: default;
+}
+.platformRow.clickable {
+  cursor: pointer;
+}
+.platformRow.critical {
+  background: var(--t-negative-bg);
+}
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.barValue {
+  min-width: 42px;
+  font-weight: 500;
+}
+.barTrack {
+  flex: 1;
+  height: 6px;
+  background: var(--c-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.barFill {
+  height: 100%;
+}
+.barPct {
+  min-width: 38px;
+  text-align: right;
+  color: var(--c-text-muted);
+  font-size: 0.7rem;
+}
+.healthDot {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.healthDot .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.viewLink {
+  color: var(--c-brand);
+  font-size: 0.72rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── Flagged list ─────────────────────────────────────────────────── */
+.flaggedItem {
+  display: grid;
+  grid-template-columns: 30px 1fr 130px 130px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--c-border);
+}
+.flaggedItem:last-child {
+  border-bottom: none;
+}
+.flagIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+/* ─── Batches ──────────────────────────────────────────────────────── */
+.batchHead {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 22px 1fr 180px 120px 90px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.batchTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.batchMeta {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--c-text-muted);
+  margin-top: 2px;
+}
+.batchTag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 8px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  justify-self: start;
+}
+.batchItems {
+  padding: 0 var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--c-canvas);
+}
+.batchItem {
+  display: grid;
+  grid-template-columns: 180px 1fr 120px 100px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.55rem 0.75rem;
+  background: var(--c-surface);
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Escalations ──────────────────────────────────────────────────── */
+.escalationRow {
+  display: grid;
+  grid-template-columns: 1fr 220px 110px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--c-border);
+}
+.escalationRow:last-child {
+  border-bottom: none;
+}
+.escalationStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.statePill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Level 2/3 header ─────────────────────────────────────────────── */
+.backBtn {
+  background: transparent;
+  border: none;
+  color: var(--c-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: var(--space-1) 0;
+  margin-bottom: var(--space-4);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.platformHeadMeta {
+  font-size: 0.8125rem;
+  color: var(--c-text-muted);
+  margin-top: var(--space-2);
+}
+
+/* ─── Timeline ─────────────────────────────────────────────────────── */
+.avatarLg {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--c-navy);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 1rem;
+  flex: 0 0 auto;
+}
+.interventionBox {
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--t-negative-bg);
+  border: 1px solid var(--c-brand);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.interventionIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--c-brand);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.timelineWrap {
+  padding: var(--space-2) var(--space-5) var(--space-5);
+  position: relative;
+}
+.timelineRail {
+  position: absolute;
+  left: 32px;
+  top: 18px;
+  bottom: 18px;
+  width: 1px;
+  background: var(--c-border);
+}
+.timelineEvent {
+  position: relative;
+  padding-left: 50px;
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+.timelineNode {
+  position: absolute;
+  left: 25px;
+  top: 18px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--c-surface);
+  border: 2px solid var(--c-border-mid);
+  z-index: 1;
+}
+.timelineCard {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+}
+.timelineCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.timelineMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  font-size: 0.72rem;
+  color: var(--c-text-muted);
+}
+.timelineDetail {
+  margin-top: var(--space-2);
+  padding: 0.4rem 0.6rem;
+  background: var(--c-canvas);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  color: var(--c-text);
+  line-height: 1.5;
+}
+
+/* ─── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .metric.divider {
+    border-left: none;
+  }
+  .metric:nth-child(odd) {
+    border-left: none;
+  }
+
+  /* Fixed-column data rows overflow a narrow viewport — stack each row's
+     cells vertically instead of forcing the grid to shrink them. */
+  .flaggedItem,
+  .escalationRow,
+  .batchItem {
+    grid-template-columns: 1fr;
+    row-gap: var(--space-2);
+  }
+  .batchHead {
+    grid-template-columns: 22px 1fr;
+  }
+  .batchHead > *:nth-child(3),
+  .batchHead > *:nth-child(4),
+  .batchHead > *:nth-child(5) {
+    grid-column: 2;
+  }
+}

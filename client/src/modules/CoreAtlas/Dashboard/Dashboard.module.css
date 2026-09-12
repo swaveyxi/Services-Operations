@@ -1,0 +1,330 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ─── Header meta ─────────────────────────────────────────────────── */
+.headMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  color: var(--c-text-muted);
+  margin-top: var(--space-1);
+}
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  position: relative;
+}
+.statusChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-md);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--t-positive-fg);
+  box-shadow: 0 0 0 3px var(--t-positive-bg);
+}
+
+/* ─── Actions dropdown ────────────────────────────────────────────── */
+.actionsMenu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  width: 420px;
+  background: #fff;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  z-index: 40;
+}
+.actionsHead {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.actionRow {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--c-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.actionRow:last-of-type {
+  border-bottom: none;
+}
+.actionBody {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.actionDot {
+  width: 6px;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.actionDot.high {
+  background: var(--c-brand);
+}
+.actionDot.medium {
+  background: var(--t-pending-fg);
+}
+.actionPlatform {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--c-text-muted);
+}
+.actionMessage {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-text);
+  margin-top: 2px;
+}
+.actionDetail {
+  font-size: 0.75rem;
+  color: var(--c-text-muted);
+  margin-top: 2px;
+}
+.actionFooter {
+  padding: var(--space-2) var(--space-4);
+  background: var(--c-canvas);
+  border-top: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--c-text-muted);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+/* ─── Stage rail ──────────────────────────────────────────────────── */
+.stageRailHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.stageRailSummary {
+  font-size: 0.8125rem;
+  color: var(--c-text-muted);
+  margin-top: 2px;
+}
+.stageRailSummary strong {
+  color: var(--c-text);
+  font-weight: 500;
+}
+.stageGrid {
+  display: grid;
+  /* Column count matches the actual stage count (set inline per-render) so
+     the row is always centered as a group, however many stages there are —
+     a fixed column count left it lopsided whenever count != 4. */
+  grid-template-columns: repeat(var(--stage-count, 4), 1fr);
+}
+.stageNode {
+  position: relative;
+  min-height: 100px;
+}
+.stageConnector {
+  position: absolute;
+  top: 22px;
+  left: calc(50% + 22px);
+  right: calc(-50% + 22px);
+  height: 1px;
+  background: var(--c-border-mid);
+}
+.stageContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  position: relative;
+  text-align: center;
+}
+.stageCircle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border: 1.5px solid var(--c-border-mid);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+.stageCircle.active {
+  border-color: var(--c-brand);
+  box-shadow: 0 0 0 4px var(--c-brand-glow);
+}
+.stageCircle.needs_action {
+  border-color: var(--t-pending-bd);
+  background: var(--t-pending-bg);
+}
+.stageBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--t-pending-fg);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+}
+.stageName {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.stageCount {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.stageCountLabel {
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+.stageNoteText {
+  font-size: 0.7rem;
+  color: var(--c-text-muted);
+  min-height: 14px;
+}
+
+/* ─── Platform result cards ───────────────────────────────────────── */
+.cardHead {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.cardBadge {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.cardHeadTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.cardHeadSub {
+  font-size: 0.7rem;
+  color: var(--c-text-muted);
+}
+.statsRow {
+  padding: var(--space-4);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+.cardFooter {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--c-border);
+  background: var(--c-canvas);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.footerMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: 0.75rem;
+  color: var(--c-text-muted);
+}
+.footerMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.fotHeadline {
+  padding: var(--space-4);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-5);
+  border-bottom: 1px solid var(--c-border);
+}
+.fotHeadlineDivider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--c-border);
+}
+.fotHeadlineValue {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+}
+.fotHeadlineNum {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--c-text);
+}
+.fotHeadlineDelta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--t-positive-fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ─── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .actionsMenu {
+    width: min(420px, calc(100vw - var(--space-8)));
+  }
+}
+
+@media (max-width: 700px) {
+  .stageGrid {
+    grid-template-columns: repeat(2, 1fr);
+    row-gap: var(--space-5);
+  }
+  .stageConnector {
+    display: none;
+  }
+  .fotHeadline {
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+}

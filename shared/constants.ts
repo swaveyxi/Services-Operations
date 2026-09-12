@@ -5,6 +5,26 @@ export const isProduction = process.env.NODE_ENV === 'production';
 export const BUSINESS_UNITS = ['Recruitment', 'Scholarships', 'Testing'] as const;
 export type BusinessUnit = (typeof BUSINESS_UNITS)[number];
 
+/* Core Atlas's registered platform slugs — static seed data on Atlas's side
+   (prisma/seed.ts in its own repo) with no query endpoint, so mirrored here
+   for the Business Case Builder's pipeline-stages picker. Excludes `blastit`
+   (communications-only, not a pipeline stage). */
+export const ATLAS_PLATFORMS = [
+  { slug: 'dragnet_screening', name: 'DragnetScreening', category: 'INTAKE' },
+  { slug: 'scholastica', name: 'Scholastica', category: 'INTAKE' },
+  { slug: 'fot', name: 'FOT', category: 'ASSESSMENT' },
+  { slug: 'testhaven', name: 'TestHaven', category: 'ASSESSMENT' },
+  { slug: 'achievatest', name: 'Achievatest', category: 'ASSESSMENT' },
+  { slug: 'essay_marker', name: 'Essay Marker', category: 'ASSESSMENT' },
+  { slug: 'dwpi', name: 'DWPI', category: 'ASSESSMENT' },
+  { slug: 'interviewer', name: 'Interviewer', category: 'ASSESSMENT' },
+  { slug: 'hr_avatar', name: 'HR Avatar', category: 'ASSESSMENT' },
+  { slug: 'veriport', name: 'Veriport', category: 'VERIFICATION' },
+  { slug: 'nincomply', name: 'NINComply', category: 'VERIFICATION' },
+  { slug: 'theregister', name: 'TheRegister', category: 'VERIFICATION' },
+] as const;
+export type AtlasPlatformSlug = (typeof ATLAS_PLATFORMS)[number]['slug'];
+
 export const CAMPAIGN_STATUSES = ['Draft', 'Pending', 'Active', 'Inactive'] as const;
 export const WORKPLAN_STATUSES = ['Not Started', 'Draft', 'Configured'] as const;
 export const OPS_REVIEW_STATUSES = ['Not Started', 'Pending', 'Accepted', 'Amended'] as const;

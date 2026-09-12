@@ -1,0 +1,384 @@
+import { useEffect, useState } from 'react';
+import { useToast } from '@/context/ToastContext';
+import { humanizeSlug, titleCase } from '@/utils/format';
+import { getCandidates } from '../services/candidates';
+import { addShortlistMembers, getShortlistDetail, queryShortlist, removeShortlistMember } from '../services/shortlist';
+import type { Candidate, PipelineStage, Shortlist, ShortlistDetail, ShortlistQueryMatch, ShortlistQueryResult } from '../types';
+import { CandidateRow } from './CandidateRow';
+import s from './Shortlist.module.css';
+
+function StatusBadge({ status }: { status: Shortlist['status'] }) {
+  const tone = status === 'LOCKED' ? 'positive' : status === 'PROGRESSED' ? 'info' : status === 'SUPERSEDED' ? 'neutral' : 'pending';
+  return <span className={`badge badge--${tone}`}>{humanizeSlug(status)}</span>;
+}
+
+export function Workspace({
+  campaignId,
+  stages,
+  summary,
+  detail,
+  onChanged,
+}: {
+  campaignId: string;
+  stages: PipelineStage[];
+  summary: Shortlist;
+  detail: ShortlistDetail | null | undefined;
+  onChanged: () => Promise<void>;
+}) {
+  const stage = stages.find((st) => st.platform_slug === summary.platform_slug);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <div className="card card-pad">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+          <h2 className="section-title" style={{ fontSize: '1.05rem' }}>
+            {summary.name}
+          </h2>
+          <span className="badge badge--neutral">{stage?.platform_name ?? humanizeSlug(summary.platform_slug)}</span>
+          <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--c-text-faint)' }}>
+            v{summary.version}
+          </span>
+          <StatusBadge status={summary.status} />
+        </div>
+        <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--c-text-muted)' }}>
+          Created by {summary.created_by} · {summary.candidate_count} candidate{summary.candidate_count === 1 ? '' : 's'}
+        </p>
+      </div>
+
+      {detail === undefined ? (
+        <div className="loading-state">Loading shortlist…</div>
+      ) : !detail ? (
+        <div className="empty-state">Couldn't load this shortlist.</div>
+      ) : detail.status === 'DRAFT' ? (
+        <DraftBody campaignId={campaignId} detail={detail} onChanged={onChanged} />
+      ) : (
+        <MembersReadOnly detail={detail} />
+      )}
+    </div>
+  );
+}
+
+function MembersReadOnly({ detail }: { detail: ShortlistDetail }) {
+  return (
+    <div className="card" style={{ overflow: 'hidden' }}>
+      <div
+        className="section-head"
+        style={{ padding: 'var(--space-4) var(--space-5)', marginBottom: 0, borderBottom: '1px solid var(--c-border)' }}
+      >
+        <h2 className="section-title">Members · {detail.members.length}</h2>
+      </div>
+      {detail.members.length === 0 ? (
+        <div className="empty-state">No members.</div>
+      ) : (
+        <div className={s.rows} style={{ padding: 'var(--space-4)' }}>
+          {detail.members.map((m) => (
+            <CandidateRow
+              key={m.id}
+              name={m.display_name}
+              subtitle={m.match_reason ?? sourceLabel(m.source)}
+              tags={m.current_stage_slug ? [humanizeSlug(m.current_stage_slug)] : undefined}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function sourceLabel(source: string): string {
+  if (source === 'AI_MATCHED') return 'Added via AI query';
+  if (source === 'MANUAL_UPLOAD') return 'Added via upload';
+  return 'Added from roster';
+}
+
+function DraftBody({
+  campaignId,
+  detail,
+  onChanged,
+}: {
+  campaignId: string;
+  detail: ShortlistDetail;
+  onChanged: () => Promise<void>;
+}) {
+  const { showToast } = useToast();
+  const [mode, setMode] = useState<'query' | 'roster'>('query');
+  const [queryText, setQueryText] = useState('');
+  const [querying, setQuerying] = useState(false);
+  const [queryResult, setQueryResult] = useState<ShortlistQueryResult | null>(null);
+  const [queryError, setQueryError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [adding, setAdding] = useState(false);
+
+  const [roster, setRoster] = useState<Candidate[] | null>(null);
+  const [rosterLoading, setRosterLoading] = useState(false);
+
+  const memberIds = new Set(detail.members.map((m) => m.campaign_candidate_id));
+
+  // Best-effort: the doc doesn't document the completed queryHistory entry's
+  // shape, so this defensively looks for a `matches` array and otherwise
+  // just stops polling — see the plan's flagged gap.
+  useEffect(() => {
+    if (queryResult?.mode !== 'QUEUED') return;
+    let cancelled = false;
+    let attempts = 0;
+    const startLen = detail.query_history.length;
+    const interval = setInterval(async () => {
+      attempts += 1;
+      const fresh = await getShortlistDetail(campaignId, detail.id);
+      if (cancelled || !fresh) return;
+      if (fresh.query_history.length > startLen) {
+        clearInterval(interval);
+        const entry = fresh.query_history[fresh.query_history.length - 1] as Record<string, unknown>;
+        const matches = Array.isArray(entry?.matches) ? (entry.matches as ShortlistQueryMatch[]) : [];
+        setQueryResult((prev) => (prev ? { ...prev, mode: 'SYNC', matches } : prev));
+        onChanged();
+      } else if (attempts >= 15) {
+        clearInterval(interval);
+      }
+    }, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [queryResult?.mode, campaignId, detail.id, detail.query_history.length, onChanged]);
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function runQuery() {
+    setQuerying(true);
+    setQueryError(null);
+    setQueryResult(null);
+    setSelected(new Set());
+    try {
+      const result = await queryShortlist(campaignId, detail.id, queryText.trim());
+      setQueryResult(result);
+    } catch (err) {
+      setQueryError(err instanceof Error ? err.message : 'Query failed.');
+    } finally {
+      setQuerying(false);
+    }
+  }
+
+  async function addSelectedMatches() {
+    if (!queryResult || selected.size === 0) return;
+    setAdding(true);
+    try {
+      const members = queryResult.matches
+        .filter((m) => selected.has(m.campaign_candidate_id))
+        .map((m) => ({
+          campaign_candidate_id: m.campaign_candidate_id,
+          source: 'AI_MATCHED' as const,
+          match_reason: m.match_reasons[0],
+        }));
+      await addShortlistMembers(campaignId, detail.id, members);
+      setSelected(new Set());
+      setQueryResult(null);
+      setQueryText('');
+      await onChanged();
+      showToast('Candidates added to shortlist.', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to add candidates.', 'error');
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function loadRoster() {
+    setRosterLoading(true);
+    try {
+      const all = await getCandidates(campaignId);
+      setRoster(all.filter((c) => !memberIds.has(c.id)));
+    } finally {
+      setRosterLoading(false);
+    }
+  }
+
+  async function addSelectedRoster() {
+    if (!roster || selected.size === 0) return;
+    setAdding(true);
+    try {
+      const members = roster
+        .filter((c) => selected.has(c.id))
+        .map((c) => ({ campaign_candidate_id: c.id, source: 'PLATFORM_DATA' as const }));
+      await addShortlistMembers(campaignId, detail.id, members);
+      setRoster((prev) => prev?.filter((c) => !selected.has(c.id)) ?? null);
+      setSelected(new Set());
+      await onChanged();
+      showToast('Candidates added to shortlist.', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to add candidates.', 'error');
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function removeMember(memberId: string) {
+    try {
+      await removeShortlistMember(campaignId, detail.id, memberId);
+      await onChanged();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to remove member.', 'error');
+    }
+  }
+
+  return (
+    <>
+      <div className="card card-pad">
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+          <button
+            className={mode === 'query' ? 'btn btn-secondary btn-sm' : 'btn btn-ghost btn-sm'}
+            onClick={() => setMode('query')}
+          >
+            <i className="fa-solid fa-wand-magic-sparkles" aria-hidden="true" /> AI query
+          </button>
+          <button
+            className={mode === 'roster' ? 'btn btn-secondary btn-sm' : 'btn btn-ghost btn-sm'}
+            onClick={() => {
+              setMode('roster');
+              if (!roster) loadRoster();
+            }}
+          >
+            <i className="fa-solid fa-users" aria-hidden="true" /> Browse roster
+          </button>
+        </div>
+
+        {mode === 'query' ? (
+          <div className={s.promptWrap}>
+            <textarea
+              className={s.promptTextarea}
+              rows={5}
+              placeholder="Describe who you're looking for — e.g. Candidates who scored above 80 on FOT with no flags"
+              value={queryText}
+              onChange={(e) => setQueryText(e.target.value)}
+            />
+            <div className={s.promptHint}>
+              <i className="fa-solid fa-circle-info" aria-hidden="true" /> Natural language, 3–4000 characters
+            </div>
+            <div className={s.promptSubmit}>
+              <button className="btn btn-primary" disabled={querying || queryText.trim().length < 3} onClick={runQuery}>
+                {querying ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Searching…
+                  </>
+                ) : (
+                  <>
+                    Find candidates <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ) : rosterLoading ? (
+          <div className="loading-state">Loading roster…</div>
+        ) : !roster || roster.length === 0 ? (
+          <div className="empty-state">No eligible candidates found in the roster.</div>
+        ) : (
+          <>
+            <div className={s.rows}>
+              {roster.map((c) => (
+                <CandidateRow
+                  key={c.id}
+                  name={c.name}
+                  subtitle={c.current_stage_slug ? humanizeSlug(c.current_stage_slug) : 'Not yet staged'}
+                  checked={selected.has(c.id)}
+                  onToggle={() => toggle(c.id)}
+                />
+              ))}
+            </div>
+            <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-primary btn-sm" disabled={selected.size === 0 || adding} onClick={addSelectedRoster}>
+                {adding ? 'Adding…' : `Add ${selected.size || ''} to shortlist`}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {mode === 'query' && queryError && (
+        <div className="empty-state" style={{ borderColor: 'var(--t-negative-bd)' }}>
+          <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> {queryError}
+        </div>
+      )}
+
+      {mode === 'query' && queryResult?.mode === 'QUEUED' && (
+        <div className="empty-state">
+          <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Large candidate pool ({queryResult.candidate_pool_size}) — query
+          queued, checking for results…
+        </div>
+      )}
+
+      {mode === 'query' && queryResult && queryResult.matches.length > 0 && (
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div
+            className="section-head"
+            style={{ padding: 'var(--space-4) var(--space-5)', marginBottom: 0, borderBottom: '1px solid var(--c-border)' }}
+          >
+            <h2 className="section-title">
+              {queryResult.matched_count} match{queryResult.matched_count === 1 ? '' : 'es'} · from {queryResult.candidate_pool_size}{' '}
+              candidates
+            </h2>
+          </div>
+          <div className={s.rows} style={{ padding: 'var(--space-4)' }}>
+            {queryResult.matches.map((m) => (
+              <CandidateRow
+                key={m.campaign_candidate_id}
+                name={m.display_name}
+                subtitle={m.match_reasons.join(' · ')}
+                tags={[titleCase(m.confidence)]}
+                checked={selected.has(m.campaign_candidate_id)}
+                onToggle={() => toggle(m.campaign_candidate_id)}
+                disabled={m.already_member}
+              />
+            ))}
+          </div>
+          <div
+            style={{
+              padding: 'var(--space-4) var(--space-5)',
+              borderTop: '1px solid var(--c-border)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+            }}
+          >
+            <button className="btn btn-primary btn-sm" disabled={selected.size === 0 || adding} onClick={addSelectedMatches}>
+              {adding ? 'Adding…' : `Add ${selected.size || ''} to shortlist`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="card" style={{ overflow: 'hidden' }}>
+        <div
+          className="section-head"
+          style={{ padding: 'var(--space-4) var(--space-5)', marginBottom: 0, borderBottom: '1px solid var(--c-border)' }}
+        >
+          <h2 className="section-title">Current members · {detail.members.length}</h2>
+        </div>
+        {detail.members.length === 0 ? (
+          <div className="empty-state">No members yet.</div>
+        ) : (
+          <div className={s.rows} style={{ padding: 'var(--space-4)' }}>
+            {detail.members.map((m) => (
+              <CandidateRow
+                key={m.id}
+                name={m.display_name}
+                subtitle={m.match_reason ?? sourceLabel(m.source)}
+                trailing={
+                  <button className="btn btn-ghost btn-sm" onClick={() => removeMember(m.id)} aria-label={`Remove ${m.display_name}`}>
+                    <i className="fa-solid fa-xmark" aria-hidden="true" />
+                  </button>
+                }
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}

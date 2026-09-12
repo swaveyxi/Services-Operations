@@ -131,6 +131,12 @@ button {
   padding: var(--space-6) var(--page-gutter) var(--space-10);
 }
 
+/* Core Atlas's dashboard-style pages are dense enough to want the full
+   viewport width rather than the app's default centered 7xl column. */
+.app-main--full {
+  max-width: none;
+}
+
 @media (min-width: 640px) {
   .app-main {
     padding-left: 24px;

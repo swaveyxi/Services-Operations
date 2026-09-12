@@ -22,6 +22,8 @@ export type Profitability = {
 export type Campaign = {
   id: string;
   campaign_id: string;
+  atlas_campaign_id?: string | null;
+  atlas_registration_warning?: string;
   client_id: string | null;
   owner_user_id: string;
   owner_name?: string | null;

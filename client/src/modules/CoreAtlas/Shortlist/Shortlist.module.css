@@ -1,0 +1,236 @@
+.selectorBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+.layout {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.aside {
+  width: 340px;
+  flex: 0 0 auto;
+}
+
+/* ─── AI query box ────────────────────────────────────────────────── */
+.promptWrap {
+  position: relative;
+}
+.promptTextarea {
+  width: 100%;
+  min-height: 170px;
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-4) 2.5rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  line-height: 1.5;
+}
+.promptTextarea:focus {
+  border-color: var(--c-brand);
+}
+.promptHint {
+  position: absolute;
+  bottom: var(--space-3);
+  left: var(--space-4);
+  font-size: 0.7rem;
+  color: var(--c-text-faint);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.promptSubmit {
+  position: absolute;
+  bottom: var(--space-3);
+  right: var(--space-3);
+}
+
+/* ─── Candidate rows ───────────────────────────────────────────────── */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+}
+.row.selected {
+  border-left: 3px solid var(--c-brand);
+}
+.rowCheckbox {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+.rowAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--c-navy);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 0.75rem;
+  flex: 0 0 auto;
+}
+.rowMain {
+  flex: 1;
+  min-width: 0;
+}
+.rowTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+}
+.rowName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.rowTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.rowTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.18rem 0.55rem;
+  font-size: 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--t-positive-bg);
+  color: var(--t-positive-fg);
+  border: 1px solid var(--t-positive-bd);
+}
+.rowActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+/* ─── Right panel ──────────────────────────────────────────────────── */
+.panelSection {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--c-border);
+}
+.panelSection:last-child {
+  border-bottom: none;
+}
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+.draftCount {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.draftCountNum {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.breakdownRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+.breakdownLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--c-text);
+}
+.breakdownDot {
+  width: 6px;
+  height: 6px;
+  background: var(--c-text);
+}
+.lockedByRow {
+  margin-top: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.72rem;
+  color: var(--c-text-muted);
+}
+.progressedIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--t-positive-fg);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+/* ─── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+  }
+  .aside {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .promptTextarea {
+    min-height: 200px;
+    padding-bottom: 4.5rem;
+  }
+  .promptHint {
+    left: var(--space-4);
+    right: var(--space-4);
+    bottom: 3.4rem;
+  }
+  .promptSubmit {
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: var(--space-3);
+  }
+  .promptSubmit button {
+    width: 100%;
+    justify-content: center;
+  }
+  .row {
+    flex-wrap: wrap;
+  }
+  .rowActions {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

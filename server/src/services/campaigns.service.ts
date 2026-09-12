@@ -33,6 +33,7 @@ import {
 import { findUserById, findUsersByIds } from '../models/users';
 import { findTeamsByUser } from '../models/teams';
 import { getBusinessUnitsForTeams } from '../../../shared/constants';
+import { registerCampaignWithAtlas, type AtlasStageInput } from './atlas.service';
 
 // Full month names — must match the format legacy-migrated campaign_ids already
 // use (e.g. "CHEVRON/JULY/2026"), or generateCampaignId can't detect an existing
@@ -76,12 +77,13 @@ export type CreateCampaignInput = {
   description?: string | null;
   revenue_items?: RevenueItemInsert[];
   cost_items?: CostItemInsert[];
+  atlas_stages?: AtlasStageInput[];
 };
 
 export async function createNewCampaign(
   input: CreateCampaignInput,
   owner_id: string,
-): Promise<CampaignRow> {
+): Promise<CampaignRow & { atlas_registration_warning?: string }> {
   let abbr = 'DRG';
   if (input.client_id) {
     const client = await findClientById(input.client_id);
@@ -111,7 +113,22 @@ export async function createNewCampaign(
   if (input.revenue_items?.length) await upsertRevenueItems(id, input.revenue_items, owner_id);
   if (input.cost_items?.length) await upsertCostItems(id, input.cost_items, owner_id);
 
-  return (await findCampaignById(id))!;
+  const created = (await findCampaignById(id))!;
+
+  // Best-effort, not part of the same transaction as the case itself — Atlas
+  // being unreachable must not block case creation. No local copy of the
+  // stage config is kept if this fails; see the plan's accepted tradeoff.
+  let atlas_registration_warning: string | undefined;
+  if (input.atlas_stages?.length) {
+    try {
+      await registerCampaignWithAtlas(created, input.atlas_stages);
+    } catch (err) {
+      atlas_registration_warning = `Case created, but Core Atlas registration failed: ${err instanceof Error ? err.message : String(err)}`;
+      console.error('[Atlas] registration failed for campaign', id, err);
+    }
+  }
+
+  return { ...created, atlas_registration_warning };
 }
 
 // ─── Read ─────────────────────────────────────────────────────────────────────

@@ -59,4 +59,9 @@ export function validateEnv() {
       '[Config] QB_TOKEN_ENCRYPTION_KEY must decode to exactly 32 bytes (generate with `openssl rand -base64 32`)',
     );
   }
+  if (!process.env.CORE_ATLAS_API_URL || !process.env.CORE_ATLAS_SERVICE_KEY) {
+    console.warn(
+      '[Config] Core Atlas vars not fully configured — Atlas integration routes will fail',
+    );
+  }
 }

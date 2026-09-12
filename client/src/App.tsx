@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ToastProvider } from './context/ToastContext';
@@ -21,6 +21,10 @@ import OrgDashboard from './pages/OrgDashboard';
 import Approvals from './pages/Approvals';
 import AdminPanel from './pages/AdminPanel';
 
+// Lazily loaded — the only code-split route in this app, deliberately scoped
+// to Core Atlas so a plain S&O page load never fetches its bundle.
+const CoreAtlas = lazy(() => import('./pages/Atlas'));
+
 export default function App() {
   const { userEmail } = useAuth();
 
@@ -36,26 +40,34 @@ export default function App() {
     <ToastProvider>
       <ToastContainer />
       <ErrorBoundary>
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/builder" element={<Builder />} />
-        <Route path="/tracker/:id" element={<Tracker />} />
-        <Route path="/workplan/:id" element={<Workplan />} />
-        <Route path="/operations" element={<Operations />} />
-        <Route path="/operations/:team" element={<OperationsTeam />}>
-          <Route path="form/:formId" element={<FormPanel />} />
-          <Route path="handoff/:formId" element={<HandoffPanel />} />
-        </Route>
-        <Route path="/workplan-review/:id" element={<WorkplanReview />} />
-        <Route path="/workplan-view/:id" element={<WorkplanView />} />
-        <Route path="/forms/:id" element={<Forms />} />
-        <Route path="/org-dashboard" element={<OrgDashboard />} />
-        <Route path="/approvals" element={<Approvals />} />
-        <Route path="/admin" element={<AdminPanel />} />
-        <Route path="*" element={<div className="empty-state">Page not found.</div>} />
-      </Route>
-    </Routes>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path='/' element={<Home />} />
+            <Route path='/builder' element={<Builder />} />
+            <Route path='/tracker/:id' element={<Tracker />} />
+            <Route path='/workplan/:id' element={<Workplan />} />
+            <Route path='/operations' element={<Operations />} />
+            <Route path='/operations/:team' element={<OperationsTeam />}>
+              <Route path='form/:formId' element={<FormPanel />} />
+              <Route path='handoff/:formId' element={<HandoffPanel />} />
+            </Route>
+            <Route path='/workplan-review/:id' element={<WorkplanReview />} />
+            <Route path='/workplan-view/:id' element={<WorkplanView />} />
+            <Route path='/forms/:id' element={<Forms />} />
+            <Route path='/org-dashboard' element={<OrgDashboard />} />
+            <Route path='/approvals' element={<Approvals />} />
+            <Route path='/admin' element={<AdminPanel />} />
+            <Route
+              path='/atlas/:id/*'
+              element={
+                <Suspense fallback={<div className='loading-state'>Loading Core Atlas…</div>}>
+                  <CoreAtlas />
+                </Suspense>
+              }
+            />
+            <Route path='*' element={<div className='empty-state'>Page not found.</div>} />
+          </Route>
+        </Routes>
       </ErrorBoundary>
     </ToastProvider>
   );

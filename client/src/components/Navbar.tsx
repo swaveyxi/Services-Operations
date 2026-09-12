@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useMatch } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { logoutToShell } from '@/auth/authBridge';
 import { listPendingApprovals } from '@/services';
@@ -36,6 +36,7 @@ export function Navbar() {
     hasRole(OPERATIONS_ROLE) || hasRole(OPERATIONS_ADMIN_ROLE) || isSuperAdmin;
   const teams = useUserTeams();
   const [pendingCount, setPendingCount] = useState(0);
+  const atlasMatch = useMatch('/atlas/:id/*');
 
   useEffect(() => {
     if (!isMd) return;
@@ -54,7 +55,7 @@ export function Navbar() {
     `${s.link} ${isActive ? s.linkActive : ''}`;
 
   return (
-    <nav className={s.navbar}>
+    <nav className={`${s.navbar} ${atlasMatch ? s.navbarAtlas : ''}`}>
       <div className={s.inner}>
         <a href={`/`} className={s.brand}>
           <img src='/dragnet-logo.png' alt='Dragnet' className={s.brandLogo} />
@@ -69,6 +70,52 @@ export function Navbar() {
           <NavLink to='/' end className={linkClass}>
             <i className='fa-solid fa-folder-open' aria-hidden='true' /> My Cases
           </NavLink>
+
+          {atlasMatch && (
+            <div className={s.dropdown}>
+              <NavLink to={`/atlas/${atlasMatch.params.id}`} className={linkClass}>
+                <i className='fa-solid fa-diagram-project' aria-hidden='true' /> Atlas{' '}
+                <i
+                  className='fa-solid fa-chevron-down'
+                  aria-hidden='true'
+                  style={{ fontSize: '0.65rem' }}
+                />
+              </NavLink>
+              <div className={s.dropdownMenu}>
+                <NavLink
+                  to={`/atlas/${atlasMatch.params.id}`}
+                  end
+                  className={s.dropdownItem}
+                >
+                  <i className='fa-solid fa-gauge-high' aria-hidden='true' /> Dashboard
+                </NavLink>
+                <NavLink
+                  to={`/atlas/${atlasMatch.params.id}/candidates`}
+                  className={s.dropdownItem}
+                >
+                  <i className='fa-solid fa-users' aria-hidden='true' /> Candidates
+                </NavLink>
+                <NavLink
+                  to={`/atlas/${atlasMatch.params.id}/shortlist`}
+                  className={s.dropdownItem}
+                >
+                  <i className='fa-solid fa-list-check' aria-hidden='true' /> Shortlist
+                </NavLink>
+                <NavLink
+                  to={`/atlas/${atlasMatch.params.id}/reports`}
+                  className={s.dropdownItem}
+                >
+                  <i className='fa-solid fa-chart-column' aria-hidden='true' /> Reports
+                </NavLink>
+                <NavLink
+                  to={`/atlas/${atlasMatch.params.id}/communications`}
+                  className={s.dropdownItem}
+                >
+                  <i className='fa-solid fa-comments' aria-hidden='true' /> Communications
+                </NavLink>
+              </div>
+            </div>
+          )}
 
           {canViewOperations &&
             (teams.length > 0 ? (
@@ -94,7 +141,6 @@ export function Navbar() {
                 <i className='fa-solid fa-clipboard-check' aria-hidden='true' /> Operations
               </NavLink>
             ))}
-
           {canViewOperations && (
             <NavLink to='/org-dashboard' className={linkClass}>
               <i className='fa-solid fa-gauge-high' aria-hidden='true' /> Org Dashboard
@@ -156,6 +202,46 @@ export function Navbar() {
           <NavLink to='/' end className={linkClass} onClick={() => setMobileOpen(false)}>
             <i className='fa-solid fa-folder-open' aria-hidden='true' /> My Cases
           </NavLink>
+          {atlasMatch && (
+            <>
+              <NavLink
+                to={`/atlas/${atlasMatch.params.id}`}
+                end
+                className={linkClass}
+                onClick={() => setMobileOpen(false)}
+              >
+                <i className='fa-solid fa-gauge-high' aria-hidden='true' /> Atlas: Dashboard
+              </NavLink>
+              <NavLink
+                to={`/atlas/${atlasMatch.params.id}/candidates`}
+                className={`${s.link} ${s.mobileChild}`}
+                onClick={() => setMobileOpen(false)}
+              >
+                <i className='fa-solid fa-users' aria-hidden='true' /> Candidates
+              </NavLink>
+              <NavLink
+                to={`/atlas/${atlasMatch.params.id}/shortlist`}
+                className={`${s.link} ${s.mobileChild}`}
+                onClick={() => setMobileOpen(false)}
+              >
+                <i className='fa-solid fa-list-check' aria-hidden='true' /> Shortlist
+              </NavLink>
+              <NavLink
+                to={`/atlas/${atlasMatch.params.id}/reports`}
+                className={`${s.link} ${s.mobileChild}`}
+                onClick={() => setMobileOpen(false)}
+              >
+                <i className='fa-solid fa-chart-column' aria-hidden='true' /> Reports
+              </NavLink>
+              <NavLink
+                to={`/atlas/${atlasMatch.params.id}/communications`}
+                className={`${s.link} ${s.mobileChild}`}
+                onClick={() => setMobileOpen(false)}
+              >
+                <i className='fa-solid fa-comments' aria-hidden='true' /> Communications
+              </NavLink>
+            </>
+          )}
           {canViewOperations && (
             <NavLink
               to='/operations'

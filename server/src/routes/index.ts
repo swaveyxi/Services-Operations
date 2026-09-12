@@ -9,6 +9,7 @@ import approvalsRouter from './approvals';
 import quickbooksRouter from './quickbooks';
 import legacyUploadsRouter from './legacyUploads';
 import reportsRouter from './reports';
+import atlasRouter from './atlas';
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/approvals', approvalsRouter);
 router.use('/quickbooks', quickbooksRouter);
 router.use('/legacy-uploads', legacyUploadsRouter);
 router.use('/reports', reportsRouter);
+router.use('/atlas', atlasRouter);
 
 export default router;

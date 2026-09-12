@@ -15,6 +15,13 @@ const LineItemSchema = z.object({
   rate: z.coerce.number().nonnegative(),
 });
 
+const AtlasStageSchema = z.object({
+  platform_slug: z.string().min(1),
+  stage_order: z.coerce.number().int().nonnegative(),
+  progression_mode: z.enum(['Manual', 'Automatic']).default('Manual'),
+  threshold: z.coerce.number().int().optional(),
+});
+
 export const CreateCampaignSchema = z.object({
   client_id: z.string().uuid().optional().nullable(),
   unit: UnitSchema,
@@ -22,6 +29,10 @@ export const CreateCampaignSchema = z.object({
   description: z.string().max(1000).optional().nullable(),
   revenue_items: z.array(LineItemSchema).optional(),
   cost_items: z.array(LineItemSchema).optional(),
+  // Not persisted locally — sent straight through to Core Atlas's own
+  // POST /campaigns at creation time. See atlas.service.ts's
+  // registerCampaignWithAtlas.
+  atlas_stages: z.array(AtlasStageSchema).optional(),
 });
 
 export const PatchCampaignSchema = z

@@ -13,6 +13,9 @@ export const campaigns = table(
       .$defaultFn(() => randomUUID()),
     // Human-readable business key: "7UP/JUN/2026". Used for display and dedup only.
     campaign_id: t.varchar({ length: 30 }).unique().notNull(),
+    // Core Atlas's own campaign id (a cuid, not a UUID). Null until the case
+    // is registered with Atlas — see server/src/services/atlas.service.ts.
+    atlas_campaign_id: t.varchar({ length: 30 }).unique(),
     // Nullable: client deletion sets this to NULL; campaign record is preserved.
     client_id: t
       .varchar({ length: 36 })
@@ -23,7 +26,9 @@ export const campaigns = table(
       .references(() => users.id, { onDelete: 'restrict' }),
     unit: t.mysqlEnum(['Recruitment', 'Scholarships', 'Testing']).notNull(),
     // Human-readable campaign name, e.g. "MTN Scholarships 2026" — distinct
-    // from campaign_id
+    // from campaign_id (the generated business key) and description (free
+    // text). Nullable so pre-existing rows aren't broken by the migration;
+    // required going forward via CreateCampaignSchema.
     name: t.varchar({ length: 255 }),
     description: t.text(),
     campaign_status: t

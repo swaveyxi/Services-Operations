@@ -34,6 +34,13 @@ export async function getCampaignByBusinessId(campaignId: string): Promise<Campa
   return data.find((c) => c.campaign_id === campaignId) ?? null;
 }
 
+export type AtlasStageDraft = {
+  platform_slug: string;
+  stage_order: number;
+  progression_mode: 'Manual' | 'Automatic';
+  threshold?: number;
+};
+
 export type CreateCampaignInput = {
   unit: string;
   name: string;
@@ -41,6 +48,7 @@ export type CreateCampaignInput = {
   description?: string | null;
   revenue_items?: LineItem[];
   cost_items?: LineItem[];
+  atlas_stages?: AtlasStageDraft[];
 };
 
 export async function createCampaign(input: CreateCampaignInput): Promise<Campaign> {
@@ -51,6 +59,7 @@ export async function createCampaign(input: CreateCampaignInput): Promise<Campai
     description: input.description ?? null,
     revenue_items: input.revenue_items ?? [],
     cost_items: input.cost_items ?? [],
+    atlas_stages: input.atlas_stages ?? [],
   });
   return res.json();
 }

@@ -215,6 +215,20 @@
 .mobileLinks {
   display: none;
 }
+/* Only ever shown once .hamburger is visible (below), so its layout can be
+   unconditional rather than duplicated per breakpoint. */
+.mobileOpen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  position: absolute;
+  top: var(--navbar-height);
+  left: 0;
+  right: 0;
+  background: var(--c-navy);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-lg);
+}
 @media (max-width: 768px) {
   .links {
     display: none;
@@ -222,17 +236,17 @@
   .hamburger {
     display: inline-flex;
   }
-  .mobileOpen {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    position: absolute;
-    top: var(--navbar-height);
-    left: 0;
-    right: 0;
-    background: var(--c-navy);
-    padding: var(--space-3);
-    box-shadow: var(--shadow-lg);
+}
+
+/* The Atlas dropdown adds an extra nav item, pushing the centered .links
+   row wider than usual — collapse to the hamburger sooner on Atlas routes
+   so it doesn't overlap the brand before then. */
+@media (max-width: 900px) {
+  .navbarAtlas .links {
+    display: none;
+  }
+  .navbarAtlas .hamburger {
+    display: inline-flex;
   }
 }
 .badge {

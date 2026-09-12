@@ -54,6 +54,7 @@ desktop.ini
 **/scripts/
 **/tests/
 **/seeds/
+**/tests/
 **/.claude
 **/.codex
 **/.agents

@@ -73,9 +73,9 @@ export async function getCampaign(req: Request, res: Response): Promise<void> {
 
 // POST /api/campaigns
 export async function createCampaign(req: Request, res: Response): Promise<void> {
-  const { client_id, unit, name, description, revenue_items, cost_items } = req.body;
+  const { client_id, unit, name, description, revenue_items, cost_items, atlas_stages } = req.body;
   const campaign = await createNewCampaign(
-    { client_id, unit, name, description, revenue_items, cost_items },
+    { client_id, unit, name, description, revenue_items, cost_items, atlas_stages },
     req.user!.id,
   );
   res.status(201).json(campaign);

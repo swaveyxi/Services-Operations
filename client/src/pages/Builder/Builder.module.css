@@ -2,21 +2,36 @@
   max-width: var(--page-max-3xl);
   margin: 0 auto;
 }
-.formIntro {
+.stepper {
+  margin-bottom: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+}
+.stepClickable {
+  cursor: pointer;
+}
+.stepIntro {
   margin-bottom: var(--space-5);
   padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--c-border);
 }
-.formIntroTitle {
+.stepTitle {
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--c-text);
   margin: 0 0 0.2rem;
 }
-.formIntroDesc {
+.stepDesc {
   font-size: 0.82rem;
   color: var(--c-text-muted);
   margin: 0;
+}
+.sectionDivider {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--c-border);
 }
 .clientBox {
   position: relative;
@@ -104,8 +119,73 @@
   margin-top: var(--space-6);
 }
 
-.sectionDivider {
-  margin-top: var(--space-6);
-  padding-top: var(--space-5);
-  border-top: 1px solid var(--c-border);
+.stageList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.stageRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-md);
+  background: var(--c-canvas);
+}
+.stageOrder {
+  flex: 0 0 auto;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-mid);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--c-text-muted);
+}
+.stageName {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+select.stageModeSelect {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 132px;
+}
+input.stageThresholdInput {
+  flex: 0 0 auto;
+  width: 9rem;
+}
+.stageRemove {
+  flex: 0 0 auto;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--c-text-faint);
+  font-size: 0.9rem;
+  padding: 0.2rem;
+}
+.stageRemove:hover {
+  color: var(--c-brand);
+}
+
+@media (max-width: 640px) {
+  .stageRow {
+    flex-wrap: wrap;
+  }
+  select.stageModeSelect,
+  input.stageThresholdInput {
+    flex: 1 1 auto;
+    width: auto;
+  }
 }
