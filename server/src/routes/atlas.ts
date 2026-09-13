@@ -13,6 +13,7 @@ import {
   addShortlistMembers,
   removeShortlistMember,
   lockShortlist,
+  discardShortlist,
   progressShortlist,
   uploadShortlistCandidates,
   uploadShortlistBrief,
@@ -45,6 +46,7 @@ router.post('/campaigns/:id/shortlists/:shortlistId/query', queryShortlist);
 router.post('/campaigns/:id/shortlists/:shortlistId/members', addShortlistMembers);
 router.delete('/campaigns/:id/shortlists/:shortlistId/members/:memberId', removeShortlistMember);
 router.post('/campaigns/:id/shortlists/:shortlistId/lock', lockShortlist);
+router.post('/campaigns/:id/shortlists/:shortlistId/discard', discardShortlist);
 router.post('/campaigns/:id/shortlists/:shortlistId/progress', progressShortlist);
 router.post('/campaigns/:id/shortlists/:shortlistId/upload-candidates', upload.single('file'), uploadShortlistCandidates);
 router.post('/campaigns/:id/shortlists/:shortlistId/brief', upload.single('file'), uploadShortlistBrief);

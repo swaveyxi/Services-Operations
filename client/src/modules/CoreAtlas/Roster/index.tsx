@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getCandidates, getPipelineDistribution } from '../services/candidates';
-import { getCampaign } from '../services/campaigns';
+import { getCampaign, getPipelineStages } from '../services/campaigns';
 import { formatDate, humanizeSlug } from '@/utils/format';
-import type { AtlasCampaign, Candidate, CandidateStatus, PipelineDistribution } from '../types';
+import type { AtlasCampaign, Candidate, CandidateStatus, PipelineDistribution, PipelineStage } from '../types';
 import { AtlasBreadcrumb } from '../components/AtlasBreadcrumb';
 import s from './Roster.module.css';
 
@@ -14,6 +14,7 @@ export default function Roster() {
   const navigate = useNavigate();
   const [campaign, setCampaign] = useState<AtlasCampaign | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [stages, setStages] = useState<PipelineStage[]>([]);
   const [distribution, setDistribution] = useState<PipelineDistribution | null>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
@@ -22,21 +23,28 @@ export default function Roster() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([getCampaign(id), getCandidates(id), getPipelineDistribution(id)]).then(([camp, c, d]) => {
-      if (!active) return;
-      setCampaign(camp);
-      setCandidates(c);
-      setDistribution(d);
-      setLoading(false);
-    });
+    Promise.all([getCampaign(id), getCandidates(id), getPipelineDistribution(id), getPipelineStages(id)]).then(
+      ([camp, c, d, st]) => {
+        if (!active) return;
+        setCampaign(camp);
+        setCandidates(c);
+        setDistribution(d);
+        setStages(st);
+        setLoading(false);
+      },
+    );
     return () => {
       active = false;
     };
   }, [id]);
 
+  // Every configured pipeline stage, not just the ones someone currently
+  // happens to be sitting at — otherwise a stage nobody is currently at
+  // (because everyone has already moved past it) silently drops out of the
+  // filter entirely.
   const stageOptions = useMemo(
-    () => [...new Set(candidates.map((c) => c.current_stage_slug).filter((v): v is string => Boolean(v)))],
-    [candidates],
+    () => stages.slice().sort((a, b) => a.stage_order - b.stage_order),
+    [stages],
   );
 
   const filtered = useMemo(() => {
@@ -74,8 +82,8 @@ export default function Roster() {
           </div>
           <select className={s.select} value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
             <option value="All">All stages</option>
-            {stageOptions.map((v) => (
-              <option key={v} value={v}>{humanizeSlug(v)}</option>
+            {stageOptions.map((st) => (
+              <option key={st.platform_slug} value={st.platform_slug}>{st.platform_name}</option>
             ))}
           </select>
           <select className={s.select} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
@@ -124,7 +132,6 @@ export default function Roster() {
               <th>Current stage</th>
               <th>Identity</th>
               <th>Invited</th>
-              <th>Stages</th>
               <th />
             </tr>
           </thead>
@@ -142,7 +149,6 @@ export default function Roster() {
                     </div>
                     <div>
                       <div className={s.candName}>{c.name}</div>
-                      <div className={s.candId}>{c.id}</div>
                     </div>
                   </div>
                 </td>
@@ -156,7 +162,6 @@ export default function Roster() {
                   </span>
                 </td>
                 <td>{formatDate(c.invited_at)}</td>
-                <td className="mono">{c.stage_count}</td>
                 <td style={{ textAlign: 'right' }}>
                   <span className={s.viewLink}>
                     View profile <i className="fa-solid fa-arrow-right" aria-hidden="true" />

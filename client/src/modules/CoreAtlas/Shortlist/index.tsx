@@ -30,7 +30,7 @@ export default function Shortlist() {
       setCampaign(c);
       setStages(st);
       setShortlists(sl);
-      setSelectedId(sl[0]?.id ?? null);
+      setSelectedId(sl.find((x) => x.status !== 'DISCARDED')?.id ?? null);
       setLoading(false);
     });
     return () => {
@@ -56,6 +56,14 @@ export default function Shortlist() {
   async function afterMutate() {
     const sl = await listShortlists(id);
     setShortlists(sl);
+    const visible = sl.filter((x) => x.status !== 'DISCARDED');
+    // The selected shortlist may have just been discarded itself — it no
+    // longer belongs in the visible list, so fall back to another one rather
+    // than keep pointing at a shortlist the dropdown no longer offers.
+    if (selectedId && !visible.some((x) => x.id === selectedId)) {
+      setSelectedId(visible[0]?.id ?? null);
+      return;
+    }
     if (selectedId) {
       const d = await getShortlistDetail(id, selectedId);
       setDetail(d);
@@ -74,7 +82,12 @@ export default function Shortlist() {
     return <div className="loading-state">Loading shortlists…</div>;
   }
 
-  const selectedSummary = shortlists.find((sl) => sl.id === selectedId) ?? null;
+  // Discarded shortlists are a soft status, kept for audit purposes, but they
+  // no longer belong in the active selector — same treatment SUPERSEDED
+  // shortlists don't get, but the user asked for discard to actually drop
+  // out of the dropdown rather than just showing a "Discarded" status.
+  const visibleShortlists = shortlists.filter((sl) => sl.status !== 'DISCARDED');
+  const selectedSummary = visibleShortlists.find((sl) => sl.id === selectedId) ?? null;
 
   return (
     <>
@@ -100,8 +113,8 @@ export default function Shortlist() {
               value={selectedId ?? ''}
               onChange={(e) => setSelectedId(e.target.value || null)}
             >
-              {shortlists.length === 0 && <option value="">No shortlists yet</option>}
-              {shortlists.map((sl) => {
+              {visibleShortlists.length === 0 && <option value="">No shortlists yet</option>}
+              {visibleShortlists.map((sl) => {
                 const stage = stages.find((st) => st.platform_slug === sl.platform_slug);
                 return (
                   <option key={sl.id} value={sl.id}>

@@ -90,6 +90,12 @@ export async function lockShortlist(req: Request, res: Response): Promise<void> 
   res.json(result);
 }
 
+// POST /api/atlas/campaigns/:id/shortlists/:shortlistId/discard
+export async function discardShortlist(req: Request, res: Response): Promise<void> {
+  const result = await atlas.discardShortlist(String(req.params.id), String(req.params.shortlistId), req.user!.name);
+  res.json(result);
+}
+
 // POST /api/atlas/campaigns/:id/shortlists/:shortlistId/progress
 export async function progressShortlist(req: Request, res: Response): Promise<void> {
   const { destination_platform_slug, note } = req.body;

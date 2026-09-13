@@ -37,6 +37,10 @@ export default function CandidateProfile() {
   }
 
   const metaEntries = Object.entries(candidate.meta ?? {});
+  // A discarded shortlist is treated as deleted from the client's
+  // perspective (see Shortlist/index.tsx) — this candidate's membership in
+  // one is no longer meaningful history to show.
+  const visibleMemberships = candidate.shortlist_memberships.filter((sm) => sm.status !== 'DISCARDED');
 
   return (
     <>
@@ -49,9 +53,6 @@ export default function CandidateProfile() {
         <div style={{ flex: 1 }}>
           <div className={s.titleRow}>
             <h1 className="page-title">{candidate.name}</h1>
-            <span className="mono" style={{ fontSize: '0.8rem', color: 'var(--c-text-faint)' }}>
-              {candidate.id}
-            </span>
             {candidate.identity_state === 'CONFIRMED' && (
               <span className="badge badge--positive">
                 <i className="fa-solid fa-circle-check" aria-hidden="true" /> NIN confirmed
@@ -115,19 +116,21 @@ export default function CandidateProfile() {
             </section>
           )}
 
-          {candidate.shortlist_memberships.length > 0 && (
+          {visibleMemberships.length > 0 && (
             <section className="card card-pad">
               <div className="section-head">
                 <h2 className="section-title">Shortlist memberships</h2>
-                <span style={{ fontSize: '0.7rem', color: 'var(--c-text-muted)' }}>{candidate.shortlist_memberships.length}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--c-text-muted)' }}>{visibleMemberships.length}</span>
               </div>
-              {candidate.shortlist_memberships.map((sm) => (
+              {visibleMemberships.map((sm) => (
                 <div key={sm.shortlistId} className={s.priorItem}>
                   <div className={s.priorTitle}>
                     <Link to={`/atlas/${id}/shortlist`}>{sm.shortlistName}</Link>
+                    <span style={{ color: 'var(--c-text-muted)', fontWeight: 400 }}> · {sm.platformName}</span>
                   </div>
                   <div className={s.priorOutcome}>
-                    {sm.source} · <span className={sm.status === 'PROGRESSED' ? s.win : undefined}>{sm.status}</span>
+                    {humanizeSlug(sm.source)} ·{' '}
+                    <span className={sm.status === 'PROGRESSED' ? s.win : undefined}>{humanizeSlug(sm.status)}</span>
                     {sm.matchReason && ` — ${sm.matchReason}`}
                   </div>
                 </div>
@@ -146,10 +149,6 @@ export default function CandidateProfile() {
               </span>
             </div>
             <div style={{ padding: 'var(--space-4) var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              <div className={s.kvRow}>
-                <span className={s.kvKey}>Global Candidate ID</span>
-                <span className={`mono ${s.kvVal}`}>{candidate.guid}</span>
-              </div>
               <div className={s.kvRow}>
                 <span className={s.kvKey}>NIN</span>
                 <span className={`mono ${s.kvVal}`}>{candidate.nin_masked ?? '—'}</span>

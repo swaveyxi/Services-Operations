@@ -55,9 +55,6 @@ export default function CommsCandidateTimeline() {
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
             <h1 className="page-title">{candidate.name}</h1>
-            <span className="mono" style={{ fontSize: '0.78rem', color: 'var(--c-text-faint)' }}>
-              {candidate.id}
-            </span>
             {candidate.identity_state === 'CONFIRMED' && (
               <span className="badge badge--positive">
                 <i className="fa-solid fa-circle-check" aria-hidden="true" /> NIN confirmed

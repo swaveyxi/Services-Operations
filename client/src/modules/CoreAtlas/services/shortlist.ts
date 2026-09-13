@@ -56,6 +56,11 @@ export async function lockShortlist(id: string, shortlistId: string): Promise<{ 
   return res.json();
 }
 
+export async function discardShortlist(id: string, shortlistId: string): Promise<Shortlist> {
+  const res = await api.post(`/atlas/campaigns/${id}/shortlists/${shortlistId}/discard`, {});
+  return res.json();
+}
+
 export async function progressShortlist(
   id: string,
   shortlistId: string,

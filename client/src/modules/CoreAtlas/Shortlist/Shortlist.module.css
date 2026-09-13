@@ -51,6 +51,15 @@
   align-items: center;
   gap: var(--space-2);
 }
+/* Same look as .promptHint, but in normal document flow — for hints that
+   aren't floating over a `position: relative` textarea wrapper. */
+.staticHint {
+  font-size: 0.7rem;
+  color: var(--c-text-faint);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
 .promptSubmit {
   position: absolute;
   bottom: var(--space-3);
@@ -130,6 +139,14 @@
   gap: var(--space-2);
   align-items: flex-end;
   flex-shrink: 0;
+}
+.viewLink {
+  color: var(--c-brand);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 /* ─── Right panel ──────────────────────────────────────────────────── */

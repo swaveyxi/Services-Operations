@@ -1,9 +1,52 @@
 import { useState } from 'react';
 import { useToast } from '@/context/ToastContext';
 import { formatDate, humanizeSlug } from '@/utils/format';
-import { lockShortlist, progressShortlist, uploadShortlistBrief } from '../services/shortlist';
-import type { PipelineStage, Shortlist, ShortlistDetail } from '../types';
+import { discardShortlist, lockShortlist, progressShortlist, uploadShortlistBrief } from '../services/shortlist';
+import type { PipelineStage, Shortlist, ShortlistDetail, ShortlistMember } from '../types';
 import s from './Shortlist.module.css';
+
+function csvCell(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+// application_fields has no fixed schema (see memberTags in Workspace.tsx) —
+// so the CSV gets one column per key actually present across these members,
+// rather than assuming named columns like "university" exist.
+function membersToCsv(members: ShortlistMember[]): string {
+  const metaKeys = Array.from(new Set(members.flatMap((m) => Object.keys(m.application_fields ?? {}))));
+  const headers = [
+    'Name',
+    'Email',
+    'Source',
+    'Current Stage',
+    'Status',
+    'Added At',
+    'Match Reason',
+    ...metaKeys.map((k) => humanizeSlug(k)),
+  ];
+  const rows = members.map((m) => [
+    m.display_name,
+    m.email ?? '',
+    humanizeSlug(m.source),
+    m.current_stage_slug ? humanizeSlug(m.current_stage_slug) : '',
+    humanizeSlug(m.status),
+    m.added_at,
+    m.match_reason ?? '',
+    ...metaKeys.map((k) => (m.application_fields?.[k] !== undefined ? String(m.application_fields[k]) : '')),
+  ]);
+  return [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
+}
+
+function downloadCsv(filename: string, content: string) {
+  // A leading UTF-8 BOM keeps Excel from mangling accented characters.
+  const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 export function RightPanel({
   campaignId,
@@ -21,12 +64,16 @@ export function RightPanel({
   const { showToast } = useToast();
   const [locking, setLocking] = useState(false);
   const [progressing, setProgressing] = useState(false);
-  const [destination, setDestination] = useState('');
+  const [discarding, setDiscarding] = useState(false);
   const [briefFile, setBriefFile] = useState<File | null>(null);
   const [briefUploading, setBriefUploading] = useState(false);
 
-  const destinationOptions = stages.filter((st) => st.platform_slug !== summary.platform_slug);
   const fromStage = stages.find((st) => st.platform_slug === summary.platform_slug);
+  // Progression is always forward, one stage at a time — never backwards,
+  // and not operator-chosen, since the pipeline order already determines it.
+  const nextStage = stages
+    .filter((st) => st.stage_order > (fromStage?.stage_order ?? -Infinity))
+    .sort((a, b) => a.stage_order - b.stage_order)[0];
   const toStage = detail?.progression
     ? stages.find((st) => st.platform_slug === detail.progression!.destination_platform_slug)
     : undefined;
@@ -50,10 +97,10 @@ export function RightPanel({
   }
 
   async function onProgress() {
-    if (!destination) return;
+    if (!nextStage) return;
     setProgressing(true);
     try {
-      const result = await progressShortlist(campaignId, summary.id, destination);
+      const result = await progressShortlist(campaignId, summary.id, nextStage.platform_slug);
       await onChanged();
       showToast(
         `Progressed ${result.candidate_count} candidate(s)${result.skipped_count ? ` (${result.skipped_count} skipped)` : ''}.`,
@@ -63,6 +110,26 @@ export function RightPanel({
       showToast(err instanceof Error ? err.message : 'Failed to progress shortlist.', 'error');
     } finally {
       setProgressing(false);
+    }
+  }
+
+  function onExportCsv() {
+    if (!detail) return;
+    const csv = membersToCsv(detail.members);
+    downloadCsv(`${summary.name}-${summary.platform_slug}-v${summary.version}.csv`, csv);
+  }
+
+  async function onDiscard() {
+    if (!window.confirm('Discard this shortlist? This cannot be undone.')) return;
+    setDiscarding(true);
+    try {
+      await discardShortlist(campaignId, summary.id);
+      await onChanged();
+      showToast('Shortlist discarded.', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to discard shortlist.', 'error');
+    } finally {
+      setDiscarding(false);
     }
   }
 
@@ -169,27 +236,19 @@ export function RightPanel({
             <div className={s.panelHead}>
               <span className="eyebrow">Progress to next stage</span>
             </div>
-            {destinationOptions.length === 0 ? (
-              <div style={{ fontSize: '0.8rem', color: 'var(--c-text-muted)' }}>No other configured stages to progress to.</div>
+            {!nextStage ? (
+              <div style={{ fontSize: '0.8rem', color: 'var(--c-text-muted)' }}>No further stage configured to progress to.</div>
             ) : (
               <>
-                <select
-                  className="select"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  style={{ marginBottom: 'var(--space-3)' }}
-                >
-                  <option value="">Select a stage…</option>
-                  {destinationOptions.map((st) => (
-                    <option key={st.platform_slug} value={st.platform_slug}>
-                      {st.platform_name}
-                    </option>
-                  ))}
-                </select>
+                <div style={{ fontSize: '0.85rem', marginBottom: 'var(--space-3)' }}>
+                  {fromStage?.platform_name ?? humanizeSlug(summary.platform_slug)}{' '}
+                  <i className="fa-solid fa-arrow-right" aria-hidden="true" style={{ margin: '0 4px', color: 'var(--c-text-muted)' }} />{' '}
+                  <strong>{nextStage.platform_name}</strong>
+                </div>
                 <button
                   className="btn btn-primary"
                   style={{ width: '100%', justifyContent: 'center' }}
-                  disabled={!destination || progressing}
+                  disabled={progressing}
                   onClick={onProgress}
                 >
                   {progressing ? 'Progressing…' : `Progress ${summary.candidate_count} candidates`}
@@ -220,6 +279,13 @@ export function RightPanel({
                 Completed {formatDate(detail.progression.completed_at)}
               </div>
             )}
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ width: '100%', justifyContent: 'center', marginTop: 'var(--space-4)' }}
+              onClick={onExportCsv}
+            >
+              <i className="fa-solid fa-file-csv" aria-hidden="true" /> Export shortlist as CSV
+            </button>
           </>
         )}
 
@@ -227,6 +293,17 @@ export function RightPanel({
           <div style={{ fontSize: '0.8rem', color: 'var(--c-text-muted)', lineHeight: 1.5 }}>
             A newer locked shortlist for this stage superseded this one.
           </div>
+        )}
+
+        {(summary.status === 'DRAFT' || summary.status === 'LOCKED') && (
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ width: '100%', justifyContent: 'center', marginTop: 'var(--space-4)', color: 'var(--t-negative-fg)' }}
+            disabled={discarding}
+            onClick={onDiscard}
+          >
+            <i className="fa-solid fa-trash" aria-hidden="true" /> {discarding ? 'Discarding…' : 'Discard shortlist'}
+          </button>
         )}
       </div>
     </div>

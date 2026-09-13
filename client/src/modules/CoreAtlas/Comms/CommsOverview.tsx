@@ -166,7 +166,7 @@ export default function CommsOverview() {
                   </span>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-2)' }}>
-                      <span className="mono" style={{ fontSize: '0.8rem', fontWeight: 600 }}>{c.id}</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{c.display_name ?? 'Unknown candidate'}</span>
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', marginTop: 2 }}>
                       {c.failed_count} failed {humanizeSlug(c.channel)} message{c.failed_count === 1 ? '' : 's'} · {c.message_types.map((t) => humanizeSlug(t)).join(', ')} · last {formatDate(c.last_failure_at)}

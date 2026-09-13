@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useToast } from '@/context/ToastContext';
 import { humanizeSlug, titleCase } from '@/utils/format';
 import { getCandidates } from '../services/candidates';
@@ -15,6 +16,7 @@ import type {
   Shortlist,
   ShortlistCandidateUploadResult,
   ShortlistDetail,
+  ShortlistMember,
   ShortlistQueryMatch,
   ShortlistQueryResult,
 } from '../types';
@@ -22,7 +24,14 @@ import { CandidateRow } from './CandidateRow';
 import s from './Shortlist.module.css';
 
 function StatusBadge({ status }: { status: Shortlist['status'] }) {
-  const tone = status === 'LOCKED' ? 'positive' : status === 'PROGRESSED' ? 'info' : status === 'SUPERSEDED' ? 'neutral' : 'pending';
+  const tone =
+    status === 'LOCKED'
+      ? 'positive'
+      : status === 'PROGRESSED'
+        ? 'info'
+        : status === 'SUPERSEDED' || status === 'DISCARDED'
+          ? 'neutral'
+          : 'pending';
   return <span className={`badge badge--${tone}`}>{humanizeSlug(status)}</span>;
 }
 
@@ -105,6 +114,21 @@ function sourceLabel(source: string): string {
   return 'Added from roster';
 }
 
+// application_fields has no fixed schema — it's whatever columns a
+// campaign's own CSV/invite carried — so tags are built generically rather
+// than assuming named keys like "university" or "grade" exist.
+function memberTags(m: ShortlistMember): string[] {
+  const tags: string[] = [];
+  if (m.current_stage_slug) tags.push(humanizeSlug(m.current_stage_slug));
+  tags.push(humanizeSlug(m.status));
+  if (m.is_override) tags.push('Manual override');
+  for (const [key, value] of Object.entries(m.application_fields ?? {})) {
+    if (value === null || value === undefined || value === '') continue;
+    tags.push(`${humanizeSlug(key)}: ${value}`);
+  }
+  return tags;
+}
+
 function DraftBody({
   campaignId,
   detail,
@@ -132,6 +156,10 @@ function DraftBody({
   const [csvError, setCsvError] = useState<string | null>(null);
 
   const memberIds = new Set(detail.members.map((m) => m.campaign_candidate_id));
+  // Derived from `detail.members` on every render, not filtered once at
+  // fetch/add time — so a candidate reappears here immediately if they're
+  // later removed from the shortlist, without needing a page refresh.
+  const availableRoster = roster?.filter((c) => !memberIds.has(c.id)) ?? null;
 
   // Best-effort: the doc doesn't document the completed queryHistory entry's
   // shape, so this defensively looks for a `matches` array and otherwise
@@ -213,21 +241,20 @@ function DraftBody({
     setRosterLoading(true);
     try {
       const all = await getCandidates(campaignId);
-      setRoster(all.filter((c) => !memberIds.has(c.id)));
+      setRoster(all);
     } finally {
       setRosterLoading(false);
     }
   }
 
   async function addSelectedRoster() {
-    if (!roster || selected.size === 0) return;
+    if (!availableRoster || selected.size === 0) return;
     setAdding(true);
     try {
-      const members = roster
+      const members = availableRoster
         .filter((c) => selected.has(c.id))
         .map((c) => ({ campaign_candidate_id: c.id, source: 'PLATFORM_DATA' as const }));
       await addShortlistMembers(campaignId, detail.id, members);
-      setRoster((prev) => prev?.filter((c) => !selected.has(c.id)) ?? null);
       setSelected(new Set());
       await onChanged();
       showToast('Candidates added to shortlist.', 'success');
@@ -325,7 +352,7 @@ function DraftBody({
               accept=".csv"
               onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)}
             />
-            <div className={s.promptHint} style={{ marginTop: 'var(--space-2)' }}>
+            <div className={s.staticHint} style={{ marginTop: 'var(--space-2)' }}>
               <i className="fa-solid fa-circle-info" aria-hidden="true" /> Headers: nin/email/phone/name (any combination) — max
               10,000 rows. Everything else in a row becomes candidate application data.
             </div>
@@ -345,18 +372,23 @@ function DraftBody({
           </div>
         ) : rosterLoading ? (
           <div className="loading-state">Loading roster…</div>
-        ) : !roster || roster.length === 0 ? (
+        ) : !availableRoster || availableRoster.length === 0 ? (
           <div className="empty-state">No eligible candidates found in the roster.</div>
         ) : (
           <>
             <div className={s.rows}>
-              {roster.map((c) => (
+              {availableRoster.map((c) => (
                 <CandidateRow
                   key={c.id}
                   name={c.name}
                   subtitle={c.current_stage_slug ? humanizeSlug(c.current_stage_slug) : 'Not yet staged'}
                   checked={selected.has(c.id)}
                   onToggle={() => toggle(c.id)}
+                  trailing={
+                    <Link to={`/atlas/${campaignId}/candidates/${c.id}`} className={s.viewLink}>
+                      View profile <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                    </Link>
+                  }
                 />
               ))}
             </div>
@@ -476,10 +508,16 @@ function DraftBody({
                 key={m.id}
                 name={m.display_name}
                 subtitle={m.match_reason ?? sourceLabel(m.source)}
+                tags={memberTags(m)}
                 trailing={
-                  <button className="btn btn-ghost btn-sm" onClick={() => removeMember(m.id)} aria-label={`Remove ${m.display_name}`}>
-                    <i className="fa-solid fa-xmark" aria-hidden="true" />
-                  </button>
+                  <>
+                    <Link to={`/atlas/${campaignId}/candidates/${m.campaign_candidate_id}`} className={s.viewLink}>
+                      View profile <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                    </Link>
+                    <button className="btn btn-ghost btn-sm" onClick={() => removeMember(m.id)} aria-label={`Remove ${m.display_name}`}>
+                      <i className="fa-solid fa-xmark" aria-hidden="true" />
+                    </button>
+                  </>
                 }
               />
             ))}

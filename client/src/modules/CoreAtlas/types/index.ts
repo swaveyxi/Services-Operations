@@ -126,6 +126,8 @@ export type CandidateCommunicationSummary = {
 export type CandidateShortlistMembership = {
   shortlistId: string;
   shortlistName: string;
+  platformSlug: string;
+  platformName: string;
   status: string;
   source: string;
   matchReason: string | null;
@@ -195,6 +197,7 @@ export type CommsPlatform = {
 export type FlaggedCandidate = {
   id: string;
   guid: string;
+  display_name: string | null;
   channel: string;
   failed_count: number;
   last_failure_at: string;
@@ -292,7 +295,7 @@ export type ReportDetail = {
 // PROGRESSED, or SUPERSEDED if a competing locked shortlist for the same
 // stage gets locked first.
 
-export type ShortlistStatus = 'DRAFT' | 'LOCKED' | 'PROGRESSED' | 'SUPERSEDED';
+export type ShortlistStatus = 'DRAFT' | 'LOCKED' | 'PROGRESSED' | 'SUPERSEDED' | 'DISCARDED';
 export type MemberSource = 'PLATFORM_DATA' | 'MANUAL_UPLOAD' | 'AI_MATCHED';
 
 export type Shortlist = {
@@ -327,6 +330,9 @@ export type ShortlistMember = {
   added_at: string;
   current_stage_slug: string | null;
   status: string;
+  // Arbitrary application-form data captured at invite/CSV-upload time — no
+  // fixed schema, varies per campaign's own CSV columns.
+  application_fields: Record<string, unknown>;
 };
 
 // No `from_platform` here — the shortlist's own `platform_slug` already is

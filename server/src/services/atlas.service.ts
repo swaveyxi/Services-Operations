@@ -294,7 +294,7 @@ type AtlasShortlistView = {
   campaignPlatformId: string;
   platformSlug: string;
   name: string;
-  status: 'DRAFT' | 'LOCKED' | 'PROGRESSED' | 'SUPERSEDED';
+  status: 'DRAFT' | 'LOCKED' | 'PROGRESSED' | 'SUPERSEDED' | 'DISCARDED';
   criteriaApplied: string | null;
   candidateCount: number;
   version: number;
@@ -322,6 +322,7 @@ type AtlasShortlistMember = {
   addedAt: string;
   currentStageSlug: string | null;
   status: string;
+  applicationFields: Record<string, unknown>;
 };
 
 function reshapeShortlistView(s: AtlasShortlistView) {
@@ -359,6 +360,7 @@ function reshapeShortlistMember(m: AtlasShortlistMember) {
     added_at: m.addedAt,
     current_stage_slug: m.currentStageSlug,
     status: m.status,
+    application_fields: m.applicationFields,
   };
 }
 
@@ -582,6 +584,20 @@ export async function lockShortlist(id: string, shortlistId: string, locked_by: 
   }
 }
 
+export async function discardShortlist(id: string, shortlistId: string, discarded_by: string) {
+  const campaign = await loadCampaign(id);
+  const atlasId = requireAtlasCampaignId(campaign);
+  try {
+    const { data } = await atlasPost<AtlasShortlistView>(
+      `/campaigns/${atlasId}/shortlists/${shortlistId}/discard`,
+      { discardedBy: discarded_by },
+    );
+    return reshapeShortlistView(data);
+  } catch (err) {
+    rethrowAtlas(err);
+  }
+}
+
 export async function progressShortlist(
   id: string,
   shortlistId: string,
@@ -723,6 +739,7 @@ export async function getFlaggedCandidates(id: string) {
     {
       campaignCandidateId: string;
       guid: string;
+      displayName: string | null;
       channel: string;
       failedCount: number;
       lastFailureAt: string;
@@ -733,6 +750,7 @@ export async function getFlaggedCandidates(id: string) {
   return data.map((f) => ({
     id: f.campaignCandidateId,
     guid: f.guid,
+    display_name: f.displayName,
     channel: f.channel,
     failed_count: f.failedCount,
     last_failure_at: f.lastFailureAt,

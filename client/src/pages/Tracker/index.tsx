@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useServiceCall } from '@/hooks/useServiceCall';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -14,8 +14,10 @@ import {
   type ServiceCatalog,
 } from '@/services';
 import { getClientById } from '@/services/clients';
+import { getPipelineStages } from '@/modules/CoreAtlas/services/campaigns';
 import { useAuth } from '@/context/AuthContext';
 import type { Campaign, ConfiguredWorkplan, SupportForm, LineItem, Service } from '@shared/types';
+import type { PipelineStage } from '@/modules/CoreAtlas/types';
 import { StatusBadge } from '@/components/StatusBadge';
 import { LifecyclePipeline } from '@/components/LifecyclePipeline';
 import { Modal } from '@/components/Modal';
@@ -51,6 +53,7 @@ export default function Tracker() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [loadError, setLoadError] = useState('');
+  const [stages, setStages] = useState<PipelineStage[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -62,6 +65,9 @@ export default function Tracker() {
         if (camp) {
           listWorkplansForCampaign(camp.id).then(setWorkplans);
           listFormsForCampaign(camp.id).then(setForms);
+          if (camp.atlas_campaign_id) {
+            getPipelineStages(camp.id).then(setStages);
+          }
           if (camp.client_id) {
             getClientById(camp.client_id).then((cl) => {
               if (active) setClientName(cl?.display_name ?? null);
@@ -236,7 +242,11 @@ export default function Tracker() {
             read-only.
           </span>
           {isOwner && (
-            <button className='btn btn-secondary btn-sm' onClick={handleUnarchive} disabled={archiving}>
+            <button
+              className='btn btn-secondary btn-sm'
+              onClick={handleUnarchive}
+              disabled={archiving}
+            >
               {archiving ? 'Restoring…' : 'Unarchive'}
             </button>
           )}
@@ -317,24 +327,11 @@ export default function Tracker() {
       )}
 
       <div className={s.grid}>
-        <div
-          className='card card-pad'
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 'var(--space-4)',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className='card card-pad'>
           <LifecyclePipeline
             approval_status={c.approval_status ?? ''}
             campaign_status={c.campaign_status}
           />
-          <Link to={`/atlas/${c.id}`} className='btn btn-secondary'>
-            <i className='fa-solid fa-diagram-project' aria-hidden='true' /> Access Campaign
-            Dashboard
-          </Link>
         </div>
 
         <div className='card card-pad'>
@@ -501,7 +498,10 @@ export default function Tracker() {
               </span>
             </h2>
             {!archived && (
-              <button className='btn btn-secondary btn-sm' onClick={() => navigate(`/forms/${c.id}`)}>
+              <button
+                className='btn btn-secondary btn-sm'
+                onClick={() => navigate(`/forms/${c.id}`)}
+              >
                 <i className='fa-solid fa-plus' aria-hidden='true' /> Submit a Form
               </button>
             )}
@@ -638,6 +638,43 @@ export default function Tracker() {
             )}
           </div>
         )}
+
+        <div className='card card-pad'>
+          <div className='section-head'>
+            <h2 className='section-title'>Application Stages</h2>
+            {c.atlas_campaign_id && (
+              <Link to={`/atlas/${c.id}`} className='btn btn-secondary btn-sm'>
+                <i className='fa-solid fa-diagram-project' aria-hidden='true' /> Access Campaign
+                Dashboard
+              </Link>
+            )}
+          </div>
+          {c.atlas_campaign_id ? (
+            stages.length > 0 && (
+              <div className='pipeline' role='list' aria-label='Application stages'>
+                {stages
+                  .slice()
+                  .sort((a, b) => a.stage_order - b.stage_order)
+                  .map((st, i) => (
+                    <Fragment key={st.platform_slug}>
+                      {i > 0 && <span className='pipeline-link' aria-hidden='true' />}
+                      <span
+                        role='listitem'
+                        className={`pipeline-step ${st.status === 'COMPLETED' ? 'is-done' : ''} ${
+                          st.status === 'ACTIVE' || st.status === 'NEEDS_ACTION' ? 'is-current' : ''
+                        }`}
+                      >
+                        <span className='pipeline-dot'>{st.status === 'COMPLETED' ? '✓' : i + 1}</span>
+                        {st.platform_name}
+                      </span>
+                    </Fragment>
+                  ))}
+              </div>
+            )
+          ) : (
+            <p className='muted'>No application stages were configured for this case.</p>
+          )}
+        </div>
       </div>
 
       {activeForm && (
