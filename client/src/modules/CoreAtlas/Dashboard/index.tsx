@@ -79,7 +79,12 @@ export default function Dashboard() {
       </div>
 
       <div className={s.main}>
-        <StageRail stages={stages} onRefresh={refresh} refreshing={refreshing} />
+        <StageRail
+          stages={stages}
+          totalCandidates={campaign.candidate_totals.total}
+          onRefresh={refresh}
+          refreshing={refreshing}
+        />
         {liveStages.map((st) => (
           <StageCard key={st.platform_slug} stage={st} />
         ))}

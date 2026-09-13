@@ -43,6 +43,10 @@ export type PipelineStageStatus = 'AWAITING' | 'ACTIVE' | 'NEEDS_ACTION' | 'COMP
 export type PipelineStageStats = {
   candidate_count: number;
   result_count: number;
+  // Candidates ever moved OUT of this stage to another — a straightforward
+  // "how many has this stage sent forward" count, unlike result_count (which
+  // never shrinks even after a candidate progresses onward).
+  progressed_count: number;
   completion_rate: number;
   pass_count: number;
   fail_count: number;
@@ -90,6 +94,10 @@ export type Candidate = {
   invited_at: string;
   invited_by_platform: string | null;
   stage_count: number;
+  // Arbitrary per-campaign application data set at invite time (e.g.
+  // {degree, grade}) — there's no fixed application-field schema, so it's
+  // rendered generically, not as named fields.
+  meta: Record<string, unknown>;
 };
 
 export type CandidateStageResult = {
@@ -135,12 +143,8 @@ export type CandidateShortlistMembership = {
 };
 
 // The full candidate profile — everything on Candidate plus the detail
-// sections Atlas returns on GET .../candidates/:candidateId. `meta` is
-// arbitrary per-campaign application data set at invite time (e.g.
-// {degree, grade}) — there's no fixed application-field schema, so it's
-// rendered generically, not as named rows.
+// sections Atlas returns on GET .../candidates/:candidateId.
 export type CandidateProfile = Candidate & {
-  meta: Record<string, unknown>;
   stage_results: CandidateStageResult[];
   progression_history: CandidateProgressionEvent[];
   communications: CandidateCommunicationSummary[];

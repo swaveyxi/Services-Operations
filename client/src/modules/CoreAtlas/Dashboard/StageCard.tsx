@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Badge } from '@/components/Badge';
 import { Stat } from '../components/ui/Stat';
 import type { PipelineStage } from '../types';
+import { STAGE_STATUS_TONE } from './StageRail';
 import s from './Dashboard.module.css';
 
 // Short badge code from a platform slug — "dragnet_screening" -> "DS",
@@ -20,9 +21,11 @@ function humanizeCategory(category: string): string {
 export function StageCard({ stage }: { stage: PipelineStage }) {
   const { id } = useParams();
   const { stats } = stage;
-  const pending = Math.max(0, stats.candidate_count - stats.result_count);
   const isScored = stats.mean_score !== null;
   const hasThreshold = stage.progression_mode === 'AUTOMATIC' && stage.threshold !== null;
+  // Same status the top rail reads — never a second, independently-derived
+  // guess, or the two can (and did) show contradictory badges for one stage.
+  const tone = STAGE_STATUS_TONE[stage.status];
 
   return (
     <section className="card">
@@ -34,13 +37,10 @@ export function StageCard({ stage }: { stage: PipelineStage }) {
           <div className={s.cardHeadTitle}>{stage.platform_name}</div>
           <div className={s.cardHeadSub}>{humanizeCategory(stage.platform_category)}</div>
         </div>
-        {stage.status === 'NEEDS_ACTION' ? (
-          <Badge tone="pending">
-            <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> Needs action
-          </Badge>
-        ) : (
-          pending > 0 && <Badge tone="info">In progress</Badge>
-        )}
+        <Badge tone={tone.badge}>
+          {stage.status === 'NEEDS_ACTION' && <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />}{' '}
+          {tone.label}
+        </Badge>
       </header>
 
       {isScored && (
@@ -74,9 +74,11 @@ export function StageCard({ stage }: { stage: PipelineStage }) {
       )}
 
       <div className={s.statsRow}>
-        <Stat value={stats.candidate_count} label="Candidates" small={isScored} />
-        <Stat value={stats.result_count} label="Complete" divider small={isScored} />
-        <Stat value={pending} label={isScored ? 'In progress' : 'Incomplete'} tone="muted" divider small={isScored} />
+        {/* candidate_count is who is HERE right now; progressed_count is how
+            many this stage has ever sent forward to the next one — two
+            independent facts, not subtracted against each other. */}
+        <Stat value={stats.candidate_count} label="Candidates in stage" small={isScored} />
+        <Stat value={stats.progressed_count} label="Candidates progressed" divider small={isScored} />
       </div>
 
       <footer className={s.cardFooter}>

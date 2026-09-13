@@ -1,8 +1,11 @@
 import { api } from '@/services/api';
 import type { Candidate, CandidateProfile, PipelineDistribution, PipelineStage } from '../types';
 
-export async function getCandidates(id: string): Promise<Candidate[]> {
-  const res = await api.get(`/atlas/campaigns/${id}/candidates`);
+export async function getCandidates(id: string, opts: { stage?: string } = {}): Promise<Candidate[]> {
+  const params = new URLSearchParams();
+  if (opts.stage) params.set('stage', opts.stage);
+  const qs = params.toString();
+  const res = await api.get(`/atlas/campaigns/${id}/candidates${qs ? `?${qs}` : ''}`);
   const body: { candidates: Candidate[] } = await res.json();
   return body.candidates;
 }

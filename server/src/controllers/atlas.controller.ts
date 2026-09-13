@@ -16,7 +16,8 @@ export async function getPipelineStages(req: Request, res: Response): Promise<vo
 export async function getCandidates(req: Request, res: Response): Promise<void> {
   const page = req.query.page ? parseInt(String(req.query.page), 10) : undefined;
   const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : undefined;
-  res.json(await atlas.getCandidates(String(req.params.id), { page, limit }));
+  const stage = req.query.stage ? String(req.query.stage) : undefined;
+  res.json(await atlas.getCandidates(String(req.params.id), { page, limit, stage }));
 }
 
 // GET /api/atlas/campaigns/:id/candidates/distribution

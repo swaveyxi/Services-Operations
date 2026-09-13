@@ -158,6 +158,7 @@ function reshapeStageStats(stats: Record<string, number>) {
   return {
     candidate_count: stats.candidateCount ?? 0,
     result_count: stats.resultCount ?? 0,
+    progressed_count: stats.progressedCount ?? 0,
     completion_rate: stats.completionRate ?? 0,
     pass_count: stats.passCount ?? 0,
     fail_count: stats.failCount ?? 0,
@@ -210,6 +211,7 @@ type AtlasCandidateRow = {
   invitedAt: string;
   invitedByPlatform: string | null;
   stageCount: number;
+  meta: Record<string, unknown>;
 };
 
 function reshapeCandidateRow(c: AtlasCandidateRow) {
@@ -229,14 +231,19 @@ function reshapeCandidateRow(c: AtlasCandidateRow) {
     invited_at: c.invitedAt,
     invited_by_platform: c.invitedByPlatform,
     stage_count: c.stageCount,
+    meta: c.meta,
   };
 }
 
-export async function getCandidates(id: string, query: { page?: number; limit?: number } = {}) {
+export async function getCandidates(
+  id: string,
+  query: { page?: number; limit?: number; stage?: string } = {},
+) {
   const campaign = await loadCampaign(id);
   const atlasId = requireAtlasCampaignId(campaign);
   const params = new URLSearchParams();
   if (query.page) params.set('page', String(query.page));
+  if (query.stage) params.set('stage', query.stage);
   params.set('limit', String(query.limit ?? 200)); // one full page covers most rosters today
   const { data, meta } = await atlasGet<AtlasCandidateRow[]>(
     `/campaigns/${atlasId}/candidates?${params}`,
@@ -263,7 +270,6 @@ export async function getCandidateById(id: string, candidateId: string) {
   try {
     const { data } = await atlasGet<
       AtlasCandidateRow & {
-        meta: Record<string, unknown>;
         stageResults: unknown[];
         progressionHistory: unknown[];
         communications: unknown[];
@@ -272,7 +278,6 @@ export async function getCandidateById(id: string, candidateId: string) {
     >(`/campaigns/${atlasId}/candidates/${candidateId}`);
     return {
       ...reshapeCandidateRow(data),
-      meta: data.meta,
       stage_results: data.stageResults,
       progression_history: data.progressionHistory,
       communications: data.communications,

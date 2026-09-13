@@ -73,7 +73,7 @@ export function Workspace({
       ) : !detail ? (
         <div className="empty-state">Couldn't load this shortlist.</div>
       ) : detail.status === 'DRAFT' ? (
-        <DraftBody campaignId={campaignId} detail={detail} onChanged={onChanged} />
+        <DraftBody campaignId={campaignId} stages={stages} detail={detail} onChanged={onChanged} />
       ) : (
         <MembersReadOnly detail={detail} />
       )}
@@ -99,7 +99,10 @@ function MembersReadOnly({ detail }: { detail: ShortlistDetail }) {
               key={m.id}
               name={m.display_name}
               subtitle={m.match_reason ?? sourceLabel(m.source)}
-              tags={m.current_stage_slug ? [humanizeSlug(m.current_stage_slug)] : undefined}
+              tags={[
+                ...(m.current_stage_slug ? [humanizeSlug(m.current_stage_slug)] : []),
+                ...applicationFieldTags(m.application_fields),
+              ]}
             />
           ))}
         </div>
@@ -114,32 +117,37 @@ function sourceLabel(source: string): string {
   return 'Added from roster';
 }
 
-// application_fields has no fixed schema — it's whatever columns a
-// campaign's own CSV/invite carried — so tags are built generically rather
-// than assuming named keys like "university" or "grade" exist.
+// Application data has no fixed schema — it's whatever columns a campaign's
+// own CSV/invite carried — so tags are built generically rather than
+// assuming named keys like "university" or "grade" exist.
+function applicationFieldTags(fields: Record<string, unknown> | undefined): string[] {
+  return Object.entries(fields ?? {})
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([key, value]) => `${humanizeSlug(key)}: ${value}`);
+}
+
 function memberTags(m: ShortlistMember): string[] {
   const tags: string[] = [];
   if (m.current_stage_slug) tags.push(humanizeSlug(m.current_stage_slug));
   tags.push(humanizeSlug(m.status));
   if (m.is_override) tags.push('Manual override');
-  for (const [key, value] of Object.entries(m.application_fields ?? {})) {
-    if (value === null || value === undefined || value === '') continue;
-    tags.push(`${humanizeSlug(key)}: ${value}`);
-  }
+  tags.push(...applicationFieldTags(m.application_fields));
   return tags;
 }
 
 function DraftBody({
   campaignId,
+  stages,
   detail,
   onChanged,
 }: {
   campaignId: string;
+  stages: PipelineStage[];
   detail: ShortlistDetail;
   onChanged: () => Promise<void>;
 }) {
   const { showToast } = useToast();
-  const [mode, setMode] = useState<'query' | 'roster' | 'csv'>('query');
+  const [mode, setMode] = useState<'roster' | 'query' | 'csv'>('roster');
   const [queryText, setQueryText] = useState('');
   const [querying, setQuerying] = useState(false);
   const [queryResult, setQueryResult] = useState<ShortlistQueryResult | null>(null);
@@ -149,17 +157,36 @@ function DraftBody({
 
   const [roster, setRoster] = useState<Candidate[] | null>(null);
   const [rosterLoading, setRosterLoading] = useState(false);
+  const [rosterSearch, setRosterSearch] = useState('');
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvResult, setCsvResult] = useState<ShortlistCandidateUploadResult | null>(null);
   const [csvError, setCsvError] = useState<string | null>(null);
 
+  const stageName = stages.find((st) => st.platform_slug === detail.platform_slug)?.platform_name ?? humanizeSlug(detail.platform_slug);
+
   const memberIds = new Set(detail.members.map((m) => m.campaign_candidate_id));
   // Derived from `detail.members` on every render, not filtered once at
   // fetch/add time — so a candidate reappears here immediately if they're
   // later removed from the shortlist, without needing a page refresh.
+  // `roster` itself is already scoped server-side to this shortlist's own
+  // stage (see loadRoster) — a shortlist only makes sense for candidates who
+  // have actually reached it by passing every stage before it, so there's no
+  // stage picker here: this list is never "all campaign candidates."
   const availableRoster = roster?.filter((c) => !memberIds.has(c.id)) ?? null;
+  const filteredRoster =
+    availableRoster?.filter((c) => {
+      if (rosterSearch && !c.name.toLowerCase().includes(rosterSearch.toLowerCase())) return false;
+      return true;
+    }) ?? null;
+
+  // The roster tab is the default view, so load it eagerly rather than
+  // waiting for the operator to click into it.
+  useEffect(() => {
+    if (!roster) loadRoster();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Best-effort: the doc doesn't document the completed queryHistory entry's
   // shape, so this defensively looks for a `matches` array and otherwise
@@ -194,6 +221,18 @@ function DraftBody({
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll(ids: string[]) {
+    setSelected((prev) => new Set([...prev, ...ids]));
+  }
+
+  function deselectAll(ids: string[]) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next.delete(id);
       return next;
     });
   }
@@ -240,8 +279,11 @@ function DraftBody({
   async function loadRoster() {
     setRosterLoading(true);
     try {
-      const all = await getCandidates(campaignId);
-      setRoster(all);
+      // Scoped to this shortlist's own stage — only candidates who have
+      // actually reached it (i.e. passed every stage before it) are
+      // eligible, never the full campaign roster.
+      const atStage = await getCandidates(campaignId, { stage: detail.platform_slug });
+      setRoster(atStage);
     } finally {
       setRosterLoading(false);
     }
@@ -297,12 +339,6 @@ function DraftBody({
       <div className="card card-pad">
         <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
           <button
-            className={mode === 'query' ? 'btn btn-secondary btn-sm' : 'btn btn-ghost btn-sm'}
-            onClick={() => setMode('query')}
-          >
-            <i className="fa-solid fa-wand-magic-sparkles" aria-hidden="true" /> AI query
-          </button>
-          <button
             className={mode === 'roster' ? 'btn btn-secondary btn-sm' : 'btn btn-ghost btn-sm'}
             onClick={() => {
               setMode('roster');
@@ -312,6 +348,12 @@ function DraftBody({
             <i className="fa-solid fa-users" aria-hidden="true" /> Browse roster
           </button>
           <button
+            className={mode === 'query' ? 'btn btn-secondary btn-sm' : 'btn btn-ghost btn-sm'}
+            onClick={() => setMode('query')}
+          >
+            <i className="fa-solid fa-wand-magic-sparkles" aria-hidden="true" /> AI query
+          </button>
+          <button
             className={mode === 'csv' ? 'btn btn-secondary btn-sm' : 'btn btn-ghost btn-sm'}
             onClick={() => setMode('csv')}
           >
@@ -319,7 +361,78 @@ function DraftBody({
           </button>
         </div>
 
-        {mode === 'query' ? (
+        {mode === 'roster' ? (
+          rosterLoading ? (
+            <div className="loading-state">Loading roster…</div>
+          ) : !availableRoster || availableRoster.length === 0 ? (
+            <div className="empty-state">No candidates have reached {stageName} yet.</div>
+          ) : (
+            <>
+              <div className={s.rosterFilters}>
+                <div className={s.searchWrap}>
+                  <i className={`fa-solid fa-magnifying-glass ${s.searchIcon}`} aria-hidden="true" />
+                  <input
+                    className={s.searchInput}
+                    value={rosterSearch}
+                    onChange={(e) => setRosterSearch(e.target.value)}
+                    placeholder="Search by name"
+                  />
+                </div>
+                <span className={s.staticHint}>
+                  <i className="fa-solid fa-circle-info" aria-hidden="true" /> Showing candidates who have reached {stageName}
+                </span>
+              </div>
+
+              {!filteredRoster || filteredRoster.length === 0 ? (
+                <div className="empty-state">No candidates match your filters.</div>
+              ) : (
+                <>
+                  <div className={s.selectionBar}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)' }}>
+                      {filteredRoster.length} candidate{filteredRoster.length === 1 ? '' : 's'}
+                    </span>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => selectAll(filteredRoster.map((c) => c.id))}
+                      >
+                        Select all
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => deselectAll(filteredRoster.map((c) => c.id))}
+                      >
+                        Deselect all
+                      </button>
+                    </div>
+                  </div>
+                  <div className={s.rows}>
+                    {filteredRoster.map((c) => (
+                      <CandidateRow
+                        key={c.id}
+                        name={c.name}
+                        subtitle={c.current_stage_slug ? humanizeSlug(c.current_stage_slug) : 'Not yet staged'}
+                        tags={applicationFieldTags(c.meta)}
+                        checked={selected.has(c.id)}
+                        onToggle={() => toggle(c.id)}
+                        trailing={
+                          <Link to={`/atlas/${campaignId}/candidates/${c.id}`} className={s.viewLink}>
+                            View profile <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                          </Link>
+                        }
+                      />
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button className="btn btn-primary btn-sm" disabled={selected.size === 0 || adding} onClick={addSelectedRoster}>
+                      {adding ? 'Adding…' : `Add ${selected.size || ''} to shortlist`}
+                    </button>
+                  </div>
+                </>
+              )}
+            </>
+          )
+        ) : mode === 'query' ? (
           <div className={s.promptWrap}>
             <textarea
               className={s.promptTextarea}
@@ -345,7 +458,7 @@ function DraftBody({
               </button>
             </div>
           </div>
-        ) : mode === 'csv' ? (
+        ) : (
           <div>
             <input
               type="file"
@@ -370,34 +483,6 @@ function DraftBody({
               </button>
             </div>
           </div>
-        ) : rosterLoading ? (
-          <div className="loading-state">Loading roster…</div>
-        ) : !availableRoster || availableRoster.length === 0 ? (
-          <div className="empty-state">No eligible candidates found in the roster.</div>
-        ) : (
-          <>
-            <div className={s.rows}>
-              {availableRoster.map((c) => (
-                <CandidateRow
-                  key={c.id}
-                  name={c.name}
-                  subtitle={c.current_stage_slug ? humanizeSlug(c.current_stage_slug) : 'Not yet staged'}
-                  checked={selected.has(c.id)}
-                  onToggle={() => toggle(c.id)}
-                  trailing={
-                    <Link to={`/atlas/${campaignId}/candidates/${c.id}`} className={s.viewLink}>
-                      View profile <i className="fa-solid fa-arrow-right" aria-hidden="true" />
-                    </Link>
-                  }
-                />
-              ))}
-            </div>
-            <div style={{ marginTop: 'var(--space-3)', display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-primary btn-sm" disabled={selected.size === 0 || adding} onClick={addSelectedRoster}>
-                {adding ? 'Adding…' : `Add ${selected.size || ''} to shortlist`}
-              </button>
-            </div>
-          </>
         )}
       </div>
 
@@ -463,6 +548,22 @@ function DraftBody({
               {queryResult.matched_count} match{queryResult.matched_count === 1 ? '' : 'es'} · from {queryResult.candidate_pool_size}{' '}
               candidates
             </h2>
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() =>
+                  selectAll(queryResult.matches.filter((m) => !m.already_member).map((m) => m.campaign_candidate_id))
+                }
+              >
+                Select all
+              </button>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => deselectAll(queryResult.matches.map((m) => m.campaign_candidate_id))}
+              >
+                Deselect all
+              </button>
+            </div>
           </div>
           <div className={s.rows} style={{ padding: 'var(--space-4)' }}>
             {queryResult.matches.map((m) => (
@@ -470,7 +571,7 @@ function DraftBody({
                 key={m.campaign_candidate_id}
                 name={m.display_name}
                 subtitle={m.match_reasons.join(' · ')}
-                tags={[titleCase(m.confidence)]}
+                tags={[titleCase(m.confidence), ...applicationFieldTags(m.application_fields)]}
                 checked={selected.has(m.campaign_candidate_id)}
                 onToggle={() => toggle(m.campaign_candidate_id)}
                 disabled={m.already_member}

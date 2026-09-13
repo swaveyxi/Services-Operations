@@ -3,7 +3,13 @@ import { Badge } from '@/components/Badge';
 import type { PipelineStage, PipelineStageStatus } from '../types';
 import s from './Dashboard.module.css';
 
-const TONE: Record<PipelineStageStatus, { badge: 'pending' | 'info' | 'neutral' | 'positive'; label: string; css: string }> = {
+// The one place a stage's status maps to a badge tone/label — shared with
+// StageCard so the top rail and the per-stage cards below it can never
+// disagree about what "this stage" is doing right now.
+export const STAGE_STATUS_TONE: Record<
+  PipelineStageStatus,
+  { badge: 'pending' | 'info' | 'neutral' | 'positive'; label: string; css: string }
+> = {
   NEEDS_ACTION: { badge: 'pending', label: 'Needs action', css: 'needs_action' },
   ACTIVE: { badge: 'info', label: 'Active', css: 'active' },
   AWAITING: { badge: 'neutral', label: 'Awaiting', css: 'awaiting' },
@@ -12,10 +18,12 @@ const TONE: Record<PipelineStageStatus, { badge: 'pending' | 'info' | 'neutral' 
 
 export function StageRail({
   stages,
+  totalCandidates,
   onRefresh,
   refreshing = false,
 }: {
   stages: PipelineStage[];
+  totalCandidates: number;
   onRefresh: () => void;
   refreshing?: boolean;
 }) {
@@ -40,7 +48,7 @@ export function StageRail({
       <div className={s.stageGrid} style={{ '--stage-count': stages.length } as CSSProperties}>
         {stages.map((stage, i) => {
           const isLast = i === stages.length - 1;
-          const tone = TONE[stage.status];
+          const tone = STAGE_STATUS_TONE[stage.status];
           return (
             <div key={stage.platform_slug} className={s.stageNode}>
               {!isLast && <div className={s.stageConnector} />}
@@ -57,6 +65,11 @@ export function StageRail({
             </div>
           );
         })}
+      </div>
+
+      <div className={s.railTotal}>
+        <span className="eyebrow">Total candidates</span>
+        <div className={s.railTotalNum}>{totalCandidates}</div>
       </div>
     </div>
   );

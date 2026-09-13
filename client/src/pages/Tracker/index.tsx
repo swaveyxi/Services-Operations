@@ -54,6 +54,7 @@ export default function Tracker() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [loadError, setLoadError] = useState('');
   const [stages, setStages] = useState<PipelineStage[]>([]);
+  const [stagesError, setStagesError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -66,7 +67,11 @@ export default function Tracker() {
           listWorkplansForCampaign(camp.id).then(setWorkplans);
           listFormsForCampaign(camp.id).then(setForms);
           if (camp.atlas_campaign_id) {
-            getPipelineStages(camp.id).then(setStages);
+            getPipelineStages(camp.id)
+              .then(setStages)
+              .catch(() => {
+                if (active) setStagesError('Could not load application stages.');
+              });
           }
           if (camp.client_id) {
             getClientById(camp.client_id).then((cl) => {
@@ -650,7 +655,9 @@ export default function Tracker() {
             )}
           </div>
           {c.atlas_campaign_id ? (
-            stages.length > 0 && (
+            stagesError ? (
+              <p className='muted'>{stagesError}</p>
+            ) : stages.length > 0 ? (
               <div className='pipeline' role='list' aria-label='Application stages'>
                 {stages
                   .slice()
@@ -670,6 +677,8 @@ export default function Tracker() {
                     </Fragment>
                   ))}
               </div>
+            ) : (
+              <p className='muted'>No application stages configured for this case yet.</p>
             )
           ) : (
             <p className='muted'>No application stages were configured for this case.</p>

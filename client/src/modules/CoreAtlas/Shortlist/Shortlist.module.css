@@ -66,6 +66,44 @@
   right: var(--space-3);
 }
 
+/* ─── Roster tab filters ───────────────────────────────────────────── */
+.rosterFilters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+.searchWrap {
+  position: relative;
+}
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--c-text-faint);
+  font-size: 0.8rem;
+}
+.searchInput {
+  width: 220px;
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.7rem 0.5rem 2rem;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  outline: none;
+}
+.searchInput:focus {
+  border-color: var(--c-brand);
+}
+.selectionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
 /* ─── Candidate rows ───────────────────────────────────────────────── */
 .rows {
   display: flex;

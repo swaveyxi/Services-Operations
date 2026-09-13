@@ -124,6 +124,7 @@
   justify-content: space-between;
   gap: var(--space-4);
   margin-bottom: var(--space-4);
+  flex-wrap: wrap;
 }
 .stageRailSummary {
   font-size: 0.8125rem;
@@ -133,6 +134,20 @@
 .stageRailSummary strong {
   color: var(--c-text);
   font-weight: 500;
+}
+.railTotal {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--c-border);
+}
+.railTotalNum {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--c-text);
+  margin-top: 2px;
 }
 .stageGrid {
   display: grid;
