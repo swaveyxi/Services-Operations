@@ -9,6 +9,39 @@ import s from './Roster.module.css';
 
 const STATUS_FILTERS: CandidateStatus[] = ['ACTIVE', 'COMPLETED', 'WITHDRAWN'];
 
+function csvCell(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+// Internal ids (id/guid) are deliberately left out — they're not meant to be
+// exposed to operators, same reasoning as removing them from the UI.
+function candidatesToCsv(candidates: Candidate[]): string {
+  const headers = ['Name', 'Email', 'Phone', 'NIN', 'Identity State', 'Status', 'Current Stage', 'Invited At', 'Returning'];
+  const rows = candidates.map((c) => [
+    c.name,
+    c.email ?? '',
+    c.phone ?? '',
+    c.nin_masked ?? '',
+    humanizeSlug(c.identity_state),
+    humanizeSlug(c.status),
+    c.current_stage_slug ? humanizeSlug(c.current_stage_slug) : '',
+    formatDate(c.invited_at),
+    c.is_returning ? 'Yes' : 'No',
+  ]);
+  return [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
+}
+
+function downloadCsv(filename: string, content: string) {
+  // A leading UTF-8 BOM keeps Excel from mangling accented characters.
+  const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function Roster() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
@@ -70,32 +103,6 @@ export default function Roster() {
             <span className="mono">{distribution.total_candidates}</span> total candidates
           </p>
         </div>
-        <div className={s.filters}>
-          <div className={s.searchWrap}>
-            <i className={`fa-solid fa-magnifying-glass ${s.searchIcon}`} aria-hidden="true" />
-            <input
-              className={s.searchInput}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by name or ID"
-            />
-          </div>
-          <select className={s.select} value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
-            <option value="All">All stages</option>
-            {stageOptions.map((st) => (
-              <option key={st.platform_slug} value={st.platform_slug}>{st.platform_name}</option>
-            ))}
-          </select>
-          <select className={s.select} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="All">All statuses</option>
-            {STATUS_FILTERS.map((v) => (
-              <option key={v} value={v}>{humanizeSlug(v)}</option>
-            ))}
-          </select>
-          <button className="btn btn-ghost btn-sm">
-            <i className="fa-solid fa-download" aria-hidden="true" /> Export
-          </button>
-        </div>
       </div>
 
       <div className="card card-pad" style={{ marginBottom: 'var(--space-4)' }}>
@@ -122,6 +129,36 @@ export default function Roster() {
             <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> {distribution.needs_action} candidate{distribution.needs_action === 1 ? '' : 's'} need action on their current stage.
           </div>
         )}
+      </div>
+
+      <div className={s.filters} style={{ marginBottom: 'var(--space-4)' }}>
+        <div className={s.searchWrap}>
+          <i className={`fa-solid fa-magnifying-glass ${s.searchIcon}`} aria-hidden="true" />
+          <input
+            className={s.searchInput}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search by name or ID"
+          />
+        </div>
+        <select className={s.select} value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
+          <option value="All">All stages</option>
+          {stageOptions.map((st) => (
+            <option key={st.platform_slug} value={st.platform_slug}>{st.platform_name}</option>
+          ))}
+        </select>
+        <select className={s.select} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="All">All statuses</option>
+          {STATUS_FILTERS.map((v) => (
+            <option key={v} value={v}>{humanizeSlug(v)}</option>
+          ))}
+        </select>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => downloadCsv(`${campaign.campaign_id}-candidates.csv`, candidatesToCsv(filtered))}
+        >
+          <i className="fa-solid fa-download" aria-hidden="true" /> Export
+        </button>
       </div>
 
       <div className="card table-wrap">
