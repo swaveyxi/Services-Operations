@@ -123,12 +123,13 @@ export async function uploadShortlistBrief(req: Request, res: Response): Promise
 
 // POST /api/atlas/campaigns/:id/reports
 export async function generateReport(req: Request, res: Response): Promise<void> {
-  const { report_type, scope_slug, prompt, title } = req.body;
+  const { report_type, scope_slug, prompt, title, include_candidates } = req.body;
   const report = await atlas.generateReport(String(req.params.id), {
     report_type,
     scope_slug,
     prompt,
     title,
+    include_candidates,
     generated_by: req.user!.name,
   });
   res.status(202).json(report);

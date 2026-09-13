@@ -14,7 +14,9 @@ export function Footer() {
   return (
     <div>
       <hr className={s.rule} style={{ opacity: 0.85 }} />
-      <div className={s.foot}>Dragnet Solutions Ltd — 1676, Oladele Olashore, Victoria Island, Lagos.</div>
+      <div className={s.foot}>
+        Dragnet Solutions Ltd — 1676, Oladele Olashore, Victoria Island, Lagos.
+      </div>
     </div>
   );
 }
@@ -93,12 +95,7 @@ export function Bullets({ items, ordered }: { items: ReactNode[]; ordered?: bool
 export function SignOff() {
   return (
     <div className={s.signOff}>
-      <div>Best Regards,</div>
-      <div>For Dragnet Solutions Limited:</div>
-      <div style={{ marginTop: 14, fontWeight: 600 }}>Chibueze Henry Ekwem</div>
-      <div style={{ color: '#555' }}>Client Engagement Executive, Dragnet Scholarships</div>
-      <div style={{ color: '#555' }}>+234 7088609806</div>
-      <div style={{ color: '#e71615' }}>chibueze@dragnet-solutions.com</div>
+      <div>&copy; Dragnet Solutions Limited</div>
     </div>
   );
 }

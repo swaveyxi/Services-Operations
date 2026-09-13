@@ -14,9 +14,6 @@ export function ExportBar({ title, campaignId, reportId }: { title: string; camp
         <a className="btn btn-primary btn-sm" href={getReportExportUrl(campaignId, reportId, 'pdf')} target="_blank" rel="noreferrer">
           <i className="fa-solid fa-download" aria-hidden="true" /> Export PDF
         </a>
-        <a className="btn btn-ghost btn-sm" href={getReportExportUrl(campaignId, reportId, 'excel')} target="_blank" rel="noreferrer">
-          <i className="fa-solid fa-download" aria-hidden="true" /> Export Excel
-        </a>
       </div>
     </div>
   );

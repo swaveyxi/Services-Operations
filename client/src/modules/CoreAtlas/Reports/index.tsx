@@ -61,18 +61,30 @@ export default function Reports() {
       const d = await getReportById(id, selectedId);
       if (cancelled || !d) return;
       setDetail(d);
-      if (d.status !== 'GENERATING') {
-        clearInterval(interval);
-        getReports(id).then((r) => {
-          if (!cancelled) setReports(r);
-        });
-      }
+      if (d.status !== 'GENERATING') clearInterval(interval);
     }, 3000);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
   }, [id, selectedId, detail?.status]);
+
+  // Refreshing the reports list is deliberately its own effect, not folded
+  // into the poll above: setDetail() there changes detail?.status, which is
+  // also this poll's own dependency — React tears the poll effect down (and
+  // flips its `cancelled` flag) as soon as that happens, before the trailing
+  // getReports() call from inside the same tick had a chance to resolve, so
+  // its result was silently dropped and the list kept showing "Generating".
+  useEffect(() => {
+    if (detail?.status === 'GENERATING') return;
+    let active = true;
+    getReports(id).then((r) => {
+      if (active) setReports(r);
+    });
+    return () => {
+      active = false;
+    };
+  }, [id, detail?.status]);
 
   function handleGenerated(report: ReportSummary) {
     setGenerateOpen(false);

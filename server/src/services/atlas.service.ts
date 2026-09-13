@@ -831,11 +831,53 @@ export async function getReports(id: string) {
   }));
 }
 
+type AtlasReportData = {
+  title: string;
+  reportType: 'STAGE' | 'CAMPAIGN' | 'CUSTOM';
+  generatedAt: string;
+  campaign: {
+    id: string;
+    externalId: string;
+    name: string;
+    clientName: string;
+    campaignType: string;
+    status: string;
+  };
+  // summary/sections are already single-word-keyed on Atlas's side (label,
+  // value, unit, kind, heading, metrics, columns, rows, key, align) — no
+  // camelCase fields to reshape, unlike the ones above.
+  summary: unknown[];
+  sections: unknown[];
+  narrative?: string[];
+};
+
+function reshapeReportData(raw: AtlasReportData | null) {
+  if (raw === null) return null;
+  return {
+    title: raw.title,
+    report_type: raw.reportType,
+    generated_at: raw.generatedAt,
+    campaign: {
+      id: raw.campaign.id,
+      external_id: raw.campaign.externalId,
+      name: raw.campaign.name,
+      client_name: raw.campaign.clientName,
+      campaign_type: raw.campaign.campaignType,
+      status: raw.campaign.status,
+    },
+    summary: raw.summary,
+    sections: raw.sections,
+    narrative: raw.narrative,
+  };
+}
+
 export async function getReportById(id: string, reportId: string) {
   const campaign = await loadCampaign(id);
   const atlasId = requireAtlasCampaignId(campaign);
   try {
-    const { data } = await atlasGet<AtlasReportView>(`/campaigns/${atlasId}/reports/${reportId}`);
+    const { data } = await atlasGet<AtlasReportView & { data: AtlasReportData | null }>(
+      `/campaigns/${atlasId}/reports/${reportId}`,
+    );
     return {
       id: data.id,
       report_type: data.reportType,
@@ -845,7 +887,7 @@ export async function getReportById(id: string, reportId: string) {
       prompt: data.prompt,
       generated_at: data.generatedAt,
       error: data.error,
-      data: data.data, // generic {summary, sections} — rendered client-side by the generic report viewer
+      data: reshapeReportData(data.data),
     };
   } catch (err) {
     if (err instanceof AtlasApiError && err.status === 404) return null;
@@ -861,7 +903,14 @@ export async function getReportExport(id: string, reportId: string, format: 'pdf
 
 export async function generateReport(
   id: string,
-  input: { report_type: 'STAGE' | 'CAMPAIGN' | 'CUSTOM'; scope_slug?: string; prompt?: string; title?: string; generated_by: string },
+  input: {
+    report_type: 'STAGE' | 'CAMPAIGN' | 'CUSTOM';
+    scope_slug?: string;
+    prompt?: string;
+    title?: string;
+    include_candidates?: boolean;
+    generated_by: string;
+  },
 ) {
   const campaign = await loadCampaign(id);
   const atlasId = requireAtlasCampaignId(campaign);
@@ -871,6 +920,7 @@ export async function generateReport(
       ...(input.scope_slug ? { scopeSlug: input.scope_slug } : {}),
       ...(input.prompt ? { prompt: input.prompt } : {}),
       ...(input.title ? { title: input.title } : {}),
+      ...(input.include_candidates !== undefined ? { includeCandidates: input.include_candidates } : {}),
       generatedBy: input.generated_by,
     });
     return {

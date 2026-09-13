@@ -20,7 +20,13 @@ export function getReportExportUrl(id: string, reportId: string, format: 'pdf' |
 
 export async function generateReport(
   id: string,
-  input: { report_type: 'STAGE' | 'CAMPAIGN' | 'CUSTOM'; scope_slug?: string; prompt?: string; title?: string },
+  input: {
+    report_type: 'STAGE' | 'CAMPAIGN' | 'CUSTOM';
+    scope_slug?: string;
+    prompt?: string;
+    title?: string;
+    include_candidates?: boolean;
+  },
 ): Promise<ReportSummary> {
   const res = await api.post(`/atlas/campaigns/${id}/reports`, input);
   return res.json();

@@ -94,7 +94,7 @@ export function GenerateReportModal({
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
               />
-              <span className="field-hint">Requires Azure OpenAI to be configured on this deployment.</span>
+              <span className="field-hint">Requires the inference AI to be configured on this deployment.</span>
             </div>
           )}
 
