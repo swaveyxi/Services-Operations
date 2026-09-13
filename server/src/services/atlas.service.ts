@@ -4,7 +4,7 @@
 // docs/Atlas_API_doc.md for the real API this wraps, and the approved plan
 // (so-the-teams-said-purrfect-rivest.md) for the design this follows.
 import createError from 'http-errors';
-import { atlasGet, atlasPost, atlasDelete, atlasGetRaw, AtlasApiError } from './atlasClient.service';
+import { atlasGet, atlasPost, atlasDelete, atlasGetRaw, atlasPostMultipart, AtlasApiError } from './atlasClient.service';
 import {
   findCampaignById,
   updateCampaign,
@@ -378,6 +378,28 @@ export async function listShortlists(
   return data.map(reshapeShortlistView);
 }
 
+type AtlasShortlistBrief = {
+  fileName: string;
+  uploadedAt: string;
+  extractedCriteria: Record<string, unknown> | null;
+  // Confirmed against a live response: the embedded brief on the shortlist
+  // detail endpoint omits these two (present only on the upload response
+  // itself) — reshape defensively rather than assuming symmetry.
+  byteLength?: number;
+  extractionNote?: string | null;
+};
+
+function reshapeShortlistBrief(brief: AtlasShortlistBrief | null) {
+  if (!brief) return null;
+  return {
+    file_name: brief.fileName,
+    uploaded_at: brief.uploadedAt,
+    extracted_criteria: brief.extractedCriteria,
+    byte_length: brief.byteLength ?? 0,
+    extraction_note: brief.extractionNote ?? null,
+  };
+}
+
 export async function getShortlistDetail(id: string, shortlistId: string) {
   const campaign = await loadCampaign(id);
   const atlasId = requireAtlasCampaignId(campaign);
@@ -385,33 +407,36 @@ export async function getShortlistDetail(id: string, shortlistId: string) {
     const { data } = await atlasGet<
       AtlasShortlistView & {
         members: AtlasShortlistMember[];
-        brief: unknown;
+        brief: AtlasShortlistBrief | null;
+        // Confirmed against a live response: this embedded view is NOT the
+        // same shape as the standalone POST .../progress response below —
+        // no progressionId, no fromPlatform (the shortlist's own
+        // platform_slug already is the source stage), and the destination
+        // field is named differently (destinationSlug, not
+        // destinationPlatformSlug). Reshape from what's actually here, not
+        // from the POST response's documented shape.
         progression: {
-          progressionId: string;
-          fromPlatform: string;
-          destinationPlatformSlug: string;
+          destinationSlug: string;
           candidateCount: number;
           progressedBy: string;
           progressedAt: string;
           status: string;
-          skippedCount: number;
+          completedAt: string | null;
         } | null;
       }
     >(`/campaigns/${atlasId}/shortlists/${shortlistId}`);
     return {
       ...reshapeShortlistView(data),
       members: data.members.map(reshapeShortlistMember),
-      brief: data.brief,
+      brief: reshapeShortlistBrief(data.brief),
       progression: data.progression
         ? {
-            progression_id: data.progression.progressionId,
-            from_platform: data.progression.fromPlatform,
-            destination_platform_slug: data.progression.destinationPlatformSlug,
+            destination_platform_slug: data.progression.destinationSlug,
             candidate_count: data.progression.candidateCount,
             progressed_by: data.progression.progressedBy,
             progressed_at: data.progression.progressedAt,
             status: data.progression.status,
-            skipped_count: data.progression.skippedCount,
+            completed_at: data.progression.completedAt,
           }
         : null,
     };
@@ -592,6 +617,46 @@ export async function progressShortlist(
       status: data.status,
       job_id: data.jobId,
       skipped_count: data.skippedCount,
+    };
+  } catch (err) {
+    rethrowAtlas(err);
+  }
+}
+
+type UploadedFile = { buffer: Buffer; originalname: string; mimetype: string };
+
+export async function uploadShortlistCandidates(id: string, shortlistId: string, file: UploadedFile) {
+  const campaign = await loadCampaign(id);
+  const atlasId = requireAtlasCampaignId(campaign);
+  try {
+    const { data } = await atlasPostMultipart<{
+      added: number;
+      skipped: { row: number; reason: string }[];
+      candidateCount: number;
+    }>(`/campaigns/${atlasId}/shortlists/${shortlistId}/upload-candidates`, file);
+    return { added: data.added, skipped: data.skipped, candidate_count: data.candidateCount };
+  } catch (err) {
+    rethrowAtlas(err);
+  }
+}
+
+export async function uploadShortlistBrief(id: string, shortlistId: string, file: UploadedFile) {
+  const campaign = await loadCampaign(id);
+  const atlasId = requireAtlasCampaignId(campaign);
+  try {
+    const { data } = await atlasPostMultipart<{
+      fileName: string;
+      uploadedAt: string;
+      extractedCriteria: Record<string, unknown> | null;
+      byteLength: number;
+      extractionNote: string | null;
+    }>(`/campaigns/${atlasId}/shortlists/${shortlistId}/brief`, file);
+    return {
+      file_name: data.fileName,
+      uploaded_at: data.uploadedAt,
+      extracted_criteria: data.extractedCriteria,
+      byte_length: data.byteLength,
+      extraction_note: data.extractionNote,
     };
   } catch (err) {
     rethrowAtlas(err);

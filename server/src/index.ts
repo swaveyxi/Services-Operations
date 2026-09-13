@@ -65,8 +65,10 @@ app.use(
 // it must bypass verifyToken (its own auth is the state+realmId check).
 app.use('/api/quickbooks', externalLimiter, qbCallbackRouter);
 
-// No endpoint accepts file uploads (attachments go through the OneDrive
-// connector, never through this API) — a modest limit is plenty for JSON bodies.
+// Most attachments still go through the OneDrive connector, never through
+// this API — a modest limit is plenty for JSON bodies. The Atlas CSV/brief
+// upload routes are the exception: they use multer as route-level middleware
+// (see routes/atlas.ts), which no-ops these two parsers on multipart bodies.
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 app.use((req: Request, _res: Response, next: NextFunction) => {

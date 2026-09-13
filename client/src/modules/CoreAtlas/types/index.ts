@@ -329,20 +329,28 @@ export type ShortlistMember = {
   status: string;
 };
 
+// No `from_platform` here — the shortlist's own `platform_slug` already is
+// the source stage progression always moves candidates out of.
 export type ShortlistProgressionSummary = {
-  progression_id: string;
-  from_platform: string;
   destination_platform_slug: string;
   candidate_count: number;
   progressed_by: string;
   progressed_at: string;
   status: string;
-  skipped_count: number;
+  completed_at: string | null;
+};
+
+export type ShortlistBrief = {
+  file_name: string;
+  uploaded_at: string;
+  extracted_criteria: Record<string, unknown> | null;
+  byte_length: number;
+  extraction_note: string | null;
 };
 
 export type ShortlistDetail = Shortlist & {
   members: ShortlistMember[];
-  brief: unknown;
+  brief: ShortlistBrief | null;
   progression: ShortlistProgressionSummary | null;
 };
 
@@ -379,4 +387,10 @@ export type ShortlistQueryResult = {
   matched_count: number;
   brief_criteria_applied: boolean;
   matches: ShortlistQueryMatch[];
+};
+
+export type ShortlistCandidateUploadResult = {
+  added: number;
+  skipped: { row: number; reason: string }[];
+  candidate_count: number;
 };

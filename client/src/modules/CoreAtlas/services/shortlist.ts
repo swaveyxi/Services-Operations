@@ -1,5 +1,12 @@
 import { api } from '@/services/api';
-import type { MemberSource, Shortlist, ShortlistDetail, ShortlistQueryResult } from '../types';
+import type {
+  MemberSource,
+  Shortlist,
+  ShortlistBrief,
+  ShortlistCandidateUploadResult,
+  ShortlistDetail,
+  ShortlistQueryResult,
+} from '../types';
 
 export async function listShortlists(id: string, filters: { platform_slug?: string; status?: string } = {}): Promise<Shortlist[]> {
   const params = new URLSearchParams();
@@ -59,5 +66,23 @@ export async function progressShortlist(
     destination_platform_slug,
     note,
   });
+  return res.json();
+}
+
+export async function uploadShortlistCandidates(
+  id: string,
+  shortlistId: string,
+  file: File,
+): Promise<ShortlistCandidateUploadResult> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await api.postForm(`/atlas/campaigns/${id}/shortlists/${shortlistId}/upload-candidates`, fd);
+  return res.json();
+}
+
+export async function uploadShortlistBrief(id: string, shortlistId: string, file: File): Promise<ShortlistBrief> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await api.postForm(`/atlas/campaigns/${id}/shortlists/${shortlistId}/brief`, fd);
   return res.json();
 }

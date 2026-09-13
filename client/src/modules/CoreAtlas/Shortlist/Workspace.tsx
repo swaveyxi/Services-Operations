@@ -2,8 +2,22 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
 import { humanizeSlug, titleCase } from '@/utils/format';
 import { getCandidates } from '../services/candidates';
-import { addShortlistMembers, getShortlistDetail, queryShortlist, removeShortlistMember } from '../services/shortlist';
-import type { Candidate, PipelineStage, Shortlist, ShortlistDetail, ShortlistQueryMatch, ShortlistQueryResult } from '../types';
+import {
+  addShortlistMembers,
+  getShortlistDetail,
+  queryShortlist,
+  removeShortlistMember,
+  uploadShortlistCandidates,
+} from '../services/shortlist';
+import type {
+  Candidate,
+  PipelineStage,
+  Shortlist,
+  ShortlistCandidateUploadResult,
+  ShortlistDetail,
+  ShortlistQueryMatch,
+  ShortlistQueryResult,
+} from '../types';
 import { CandidateRow } from './CandidateRow';
 import s from './Shortlist.module.css';
 
@@ -101,7 +115,7 @@ function DraftBody({
   onChanged: () => Promise<void>;
 }) {
   const { showToast } = useToast();
-  const [mode, setMode] = useState<'query' | 'roster'>('query');
+  const [mode, setMode] = useState<'query' | 'roster' | 'csv'>('query');
   const [queryText, setQueryText] = useState('');
   const [querying, setQuerying] = useState(false);
   const [queryResult, setQueryResult] = useState<ShortlistQueryResult | null>(null);
@@ -111,6 +125,11 @@ function DraftBody({
 
   const [roster, setRoster] = useState<Candidate[] | null>(null);
   const [rosterLoading, setRosterLoading] = useState(false);
+
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvResult, setCsvResult] = useState<ShortlistCandidateUploadResult | null>(null);
+  const [csvError, setCsvError] = useState<string | null>(null);
 
   const memberIds = new Set(detail.members.map((m) => m.campaign_candidate_id));
 
@@ -228,6 +247,24 @@ function DraftBody({
     }
   }
 
+  async function uploadCsv() {
+    if (!csvFile) return;
+    setCsvUploading(true);
+    setCsvError(null);
+    setCsvResult(null);
+    try {
+      const result = await uploadShortlistCandidates(campaignId, detail.id, csvFile);
+      setCsvResult(result);
+      setCsvFile(null);
+      await onChanged();
+      showToast(`${result.added} candidate${result.added === 1 ? '' : 's'} added from CSV.`, 'success');
+    } catch (err) {
+      setCsvError(err instanceof Error ? err.message : 'Upload failed.');
+    } finally {
+      setCsvUploading(false);
+    }
+  }
+
   return (
     <>
       <div className="card card-pad">
@@ -246,6 +283,12 @@ function DraftBody({
             }}
           >
             <i className="fa-solid fa-users" aria-hidden="true" /> Browse roster
+          </button>
+          <button
+            className={mode === 'csv' ? 'btn btn-secondary btn-sm' : 'btn btn-ghost btn-sm'}
+            onClick={() => setMode('csv')}
+          >
+            <i className="fa-solid fa-file-csv" aria-hidden="true" /> Upload CSV
           </button>
         </div>
 
@@ -270,6 +313,31 @@ function DraftBody({
                 ) : (
                   <>
                     Find candidates <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ) : mode === 'csv' ? (
+          <div>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)}
+            />
+            <div className={s.promptHint} style={{ marginTop: 'var(--space-2)' }}>
+              <i className="fa-solid fa-circle-info" aria-hidden="true" /> Headers: nin/email/phone/name (any combination) — max
+              10,000 rows. Everything else in a row becomes candidate application data.
+            </div>
+            <div style={{ marginTop: 'var(--space-3)' }}>
+              <button className="btn btn-primary" disabled={!csvFile || csvUploading} onClick={uploadCsv}>
+                {csvUploading ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Uploading…
+                  </>
+                ) : (
+                  <>
+                    Upload candidates <i className="fa-solid fa-arrow-right" aria-hidden="true" />
                   </>
                 )}
               </button>
@@ -307,10 +375,49 @@ function DraftBody({
         </div>
       )}
 
+      {mode === 'csv' && csvError && (
+        <div className="empty-state" style={{ borderColor: 'var(--t-negative-bd)' }}>
+          <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" /> {csvError}
+        </div>
+      )}
+
+      {mode === 'csv' && csvResult && (
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div
+            className="section-head"
+            style={{
+              padding: 'var(--space-4) var(--space-5)',
+              marginBottom: 0,
+              borderBottom: csvResult.skipped.length > 0 ? '1px solid var(--c-border)' : undefined,
+            }}
+          >
+            <h2 className="section-title">{csvResult.added} added</h2>
+            {csvResult.skipped.length > 0 && <span className="badge badge--pending">{csvResult.skipped.length} skipped</span>}
+          </div>
+          {csvResult.skipped.length > 0 && (
+            <div style={{ padding: 'var(--space-4) var(--space-5)', fontSize: '0.8rem', color: 'var(--c-text-muted)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {csvResult.skipped.map((row, i) => (
+                <div key={i}>
+                  Row {row.row}: {row.reason}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {mode === 'query' && queryResult?.mode === 'QUEUED' && (
         <div className="empty-state">
           <i className="fa-solid fa-spinner fa-spin" aria-hidden="true" /> Large candidate pool ({queryResult.candidate_pool_size}) — query
           queued, checking for results…
+        </div>
+      )}
+
+      {mode === 'query' && queryResult && queryResult.mode === 'SYNC' && queryResult.matches.length === 0 && (
+        <div className="empty-state">
+          No candidates matched this query, out of {queryResult.candidate_pool_size} in the pool
+          {queryResult.brief_criteria_applied ? ' (a brief is applied — its criteria narrow the match too)' : ''}.
+          Try rephrasing, or switch to Browse roster.
         </div>
       )}
 

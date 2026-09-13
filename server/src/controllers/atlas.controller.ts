@@ -101,6 +101,20 @@ export async function progressShortlist(req: Request, res: Response): Promise<vo
   res.status(201).json(result);
 }
 
+// POST /api/atlas/campaigns/:id/shortlists/:shortlistId/upload-candidates
+export async function uploadShortlistCandidates(req: Request, res: Response): Promise<void> {
+  if (!req.file) throw createError(400, 'No file uploaded.');
+  const result = await atlas.uploadShortlistCandidates(String(req.params.id), String(req.params.shortlistId), req.file);
+  res.status(201).json(result);
+}
+
+// POST /api/atlas/campaigns/:id/shortlists/:shortlistId/brief
+export async function uploadShortlistBrief(req: Request, res: Response): Promise<void> {
+  if (!req.file) throw createError(400, 'No file uploaded.');
+  const result = await atlas.uploadShortlistBrief(String(req.params.id), String(req.params.shortlistId), req.file);
+  res.status(201).json(result);
+}
+
 // POST /api/atlas/campaigns/:id/reports
 export async function generateReport(req: Request, res: Response): Promise<void> {
   const { report_type, scope_slug, prompt, title } = req.body;

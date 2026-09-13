@@ -40,6 +40,26 @@ async function request(path: string, options: RequestInit = {}): Promise<Respons
   return res;
 }
 
+// File uploads (FormData) can't go through request() — it always forces a
+// JSON content-type. Kept separate rather than branching request() itself,
+// since every other call site depends on that JSON default.
+async function requestForm(path: string, formData: FormData): Promise<Response> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+  if (res.status === 401 && !DEV_BYPASS) {
+    clearAuth();
+    redirectToShell();
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: { message?: string } };
+    throw new ApiError(body?.error?.message ?? `HTTP ${res.status}`, res.status);
+  }
+  return res;
+}
+
 export const api = {
   get: (path: string) => request(path),
   post: (path: string, body: unknown) =>
@@ -49,4 +69,5 @@ export const api = {
   put: (path: string, body: unknown) =>
     request(path, { method: 'PUT', body: JSON.stringify(body) }),
   del: (path: string) => request(path, { method: 'DELETE' }),
+  postForm: (path: string, formData: FormData) => requestForm(path, formData),
 };

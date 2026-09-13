@@ -60,6 +60,30 @@ export async function atlasDelete<T>(path: string): Promise<{ data: T }> {
   return atlasFetch<T>(path, { method: 'DELETE' });
 }
 
+// CSV/brief uploads — the one request shape atlasFetch can't handle, since it
+// always forces a JSON content-type. Built separately (not routed through
+// atlasFetch) so fetch can set its own multipart boundary header.
+export async function atlasPostMultipart<T>(
+  path: string,
+  file: { buffer: Buffer; originalname: string; mimetype: string },
+): Promise<{ data: T }> {
+  const form = new FormData();
+  // Node's Buffer is typed Buffer<ArrayBufferLike> (which includes
+  // SharedArrayBuffer), not assignable to BlobPart's ArrayBuffer — copying
+  // into a fresh Uint8Array resolves the mismatch.
+  form.append('file', new Blob([new Uint8Array(file.buffer)], { type: file.mimetype }), file.originalname);
+  const res = await fetch(`${apiBase()}${path}`, {
+    method: 'POST',
+    headers: { 'X-Service-Key': serviceKey(), accept: 'application/json' },
+    body: form,
+  });
+  const body = (await res.json()) as AtlasEnvelope<T>;
+  if (!body.success) {
+    throw new AtlasApiError(res.status, body.error.code, body.error.message);
+  }
+  return { data: body.data };
+}
+
 // The report-export endpoint is the one Atlas route that returns a raw file
 // instead of the JSON envelope — callers stream this through, not `.json()` it.
 export async function atlasGetRaw(

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { humanizeSlug } from '@/utils/format';
-import { lockShortlist, progressShortlist } from '../services/shortlist';
+import { formatDate, humanizeSlug } from '@/utils/format';
+import { lockShortlist, progressShortlist, uploadShortlistBrief } from '../services/shortlist';
 import type { PipelineStage, Shortlist, ShortlistDetail } from '../types';
 import s from './Shortlist.module.css';
 
@@ -22,8 +22,14 @@ export function RightPanel({
   const [locking, setLocking] = useState(false);
   const [progressing, setProgressing] = useState(false);
   const [destination, setDestination] = useState('');
+  const [briefFile, setBriefFile] = useState<File | null>(null);
+  const [briefUploading, setBriefUploading] = useState(false);
 
   const destinationOptions = stages.filter((st) => st.platform_slug !== summary.platform_slug);
+  const fromStage = stages.find((st) => st.platform_slug === summary.platform_slug);
+  const toStage = detail?.progression
+    ? stages.find((st) => st.platform_slug === detail.progression!.destination_platform_slug)
+    : undefined;
 
   async function onLock() {
     setLocking(true);
@@ -60,6 +66,21 @@ export function RightPanel({
     }
   }
 
+  async function onUploadBrief() {
+    if (!briefFile) return;
+    setBriefUploading(true);
+    try {
+      await uploadShortlistBrief(campaignId, summary.id, briefFile);
+      setBriefFile(null);
+      await onChanged();
+      showToast('Brief uploaded.', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to upload brief.', 'error');
+    } finally {
+      setBriefUploading(false);
+    }
+  }
+
   return (
     <div className="card">
       <div className={s.panelSection}>
@@ -82,6 +103,41 @@ export function RightPanel({
           </div>
         )}
       </div>
+
+      {summary.status === 'DRAFT' && (
+        <div className={s.panelSection}>
+          <div className={s.panelHead}>
+            <span className="eyebrow">Brief</span>
+          </div>
+          {detail?.brief ? (
+            <div style={{ fontSize: '0.8rem', color: 'var(--c-text-muted)', lineHeight: 1.5, marginBottom: 'var(--space-3)' }}>
+              <div style={{ color: 'var(--c-text)', fontWeight: 500 }}>{detail.brief.file_name}</div>
+              <div>Uploaded {formatDate(detail.brief.uploaded_at)}</div>
+              {detail.brief.extraction_note ? (
+                <div style={{ marginTop: 4 }}>{detail.brief.extraction_note}</div>
+              ) : detail.brief.extracted_criteria ? (
+                <div style={{ marginTop: 4 }}>Criteria extracted — seeds AI query matching.</div>
+              ) : null}
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.8rem', color: 'var(--c-text-muted)', marginBottom: 'var(--space-3)', lineHeight: 1.5 }}>
+              No brief uploaded yet — seeds AI query criteria when present.
+            </div>
+          )}
+          <input type="file" accept=".txt,.md,.rtf,.csv,.pdf,.docx" onChange={(e) => setBriefFile(e.target.files?.[0] ?? null)} />
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ width: '100%', justifyContent: 'center', marginTop: 'var(--space-2)' }}
+            disabled={!briefFile || briefUploading}
+            onClick={onUploadBrief}
+          >
+            {briefUploading ? 'Uploading…' : detail?.brief ? 'Replace brief' : 'Upload brief'}
+          </button>
+          <div style={{ fontSize: '0.65rem', color: 'var(--c-text-faint)', marginTop: 4 }}>
+            Only .txt/.md/.rtf/.csv get criteria extracted; other formats are stored as-is.
+          </div>
+        </div>
+      )}
 
       <div className={s.panelSection}>
         {summary.status === 'DRAFT' && (
@@ -155,10 +211,15 @@ export function RightPanel({
               <i className="fa-solid fa-check" aria-hidden="true" />
             </div>
             <div style={{ fontSize: '0.85rem', marginTop: 'var(--space-3)', lineHeight: 1.5 }}>
-              {detail.progression.candidate_count} candidates moved from {humanizeSlug(detail.progression.from_platform)} to{' '}
-              {humanizeSlug(detail.progression.destination_platform_slug)}
-              {detail.progression.skipped_count > 0 && <> ({detail.progression.skipped_count} skipped)</>}
+              {detail.progression.candidate_count} candidates moved from{' '}
+              {fromStage?.platform_name ?? humanizeSlug(summary.platform_slug)} to{' '}
+              {toStage?.platform_name ?? humanizeSlug(detail.progression.destination_platform_slug)}
             </div>
+            {detail.progression.completed_at && (
+              <div style={{ fontSize: '0.7rem', color: 'var(--c-text-muted)', marginTop: 'var(--space-2)' }}>
+                Completed {formatDate(detail.progression.completed_at)}
+              </div>
+            )}
           </>
         )}
 
