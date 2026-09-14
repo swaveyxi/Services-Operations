@@ -658,20 +658,15 @@ export default function Tracker() {
             stagesError ? (
               <p className='muted'>{stagesError}</p>
             ) : stages.length > 0 ? (
-              <div className='pipeline' role='list' aria-label='Application stages'>
+              <div className={`pipeline ${s.appStagesPipeline}`} role='list' aria-label='Application stages'>
                 {stages
                   .slice()
                   .sort((a, b) => a.stage_order - b.stage_order)
                   .map((st, i) => (
                     <Fragment key={st.platform_slug}>
                       {i > 0 && <span className='pipeline-link' aria-hidden='true' />}
-                      <span
-                        role='listitem'
-                        className={`pipeline-step ${st.status === 'COMPLETED' ? 'is-done' : ''} ${
-                          st.status === 'ACTIVE' || st.status === 'NEEDS_ACTION' ? 'is-current' : ''
-                        }`}
-                      >
-                        <span className='pipeline-dot'>{st.status === 'COMPLETED' ? '✓' : i + 1}</span>
+                      <span role='listitem' className='pipeline-step'>
+                        <span className='pipeline-dot'>{i + 1}</span>
                         {st.platform_name}
                       </span>
                     </Fragment>

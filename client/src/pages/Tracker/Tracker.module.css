@@ -210,6 +210,24 @@
   align-items: center;
   gap: 0.35rem;
 }
+
+/* Application Stages card: a plain, uniform stepper — not aware of which
+   stage is active/done, unlike the case lifecycle spine.
+   :global() is required here — .pipeline-dot/.pipeline-step/.pipeline-link
+   are plain global classes (defined in global.css), and inside a CSS module
+   an un-wrapped selector would otherwise get locally hashed and never match
+   the literal class names actually rendered in the DOM. */
+.appStagesPipeline :global(.pipeline-dot) {
+  border-color: var(--c-brand);
+  background: var(--c-brand);
+  color: #fff;
+}
+.appStagesPipeline :global(.pipeline-step) {
+  color: var(--c-text);
+}
+.appStagesPipeline :global(.pipeline-link) {
+  background: var(--c-brand);
+}
 @media (max-width: 760px) {
   .profitGrid {
     grid-template-columns: 1fr 1fr;
