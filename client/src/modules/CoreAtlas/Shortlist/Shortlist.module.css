@@ -5,6 +5,29 @@
   margin-bottom: var(--space-5);
   flex-wrap: wrap;
 }
+.viewTabBar {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+.stageTabBar {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+.stageSectionHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+.stageSectionTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--c-text);
+}
 .layout {
   display: flex;
   gap: var(--space-5);

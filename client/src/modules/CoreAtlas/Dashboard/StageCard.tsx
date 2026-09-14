@@ -2,7 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Badge } from '@/components/Badge';
 import { Stat } from '../components/ui/Stat';
 import type { PipelineStage } from '../types';
-import { STAGE_STATUS_TONE } from './StageRail';
+import { effectiveStageStatus, STAGE_STATUS_TONE } from './StageRail';
 import s from './Dashboard.module.css';
 
 // Short badge code from a platform slug — "dragnet_screening" -> "DS",
@@ -25,7 +25,8 @@ export function StageCard({ stage }: { stage: PipelineStage }) {
   const hasThreshold = stage.progression_mode === 'AUTOMATIC' && stage.threshold !== null;
   // Same status the top rail reads — never a second, independently-derived
   // guess, or the two can (and did) show contradictory badges for one stage.
-  const tone = STAGE_STATUS_TONE[stage.status];
+  const status = effectiveStageStatus(stage);
+  const tone = STAGE_STATUS_TONE[status];
 
   return (
     <section className="card">
@@ -38,7 +39,7 @@ export function StageCard({ stage }: { stage: PipelineStage }) {
           <div className={s.cardHeadSub}>{humanizeCategory(stage.platform_category)}</div>
         </div>
         <Badge tone={tone.badge}>
-          {stage.status === 'NEEDS_ACTION' && <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />}{' '}
+          {status === 'NEEDS_ACTION' && <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />}{' '}
           {tone.label}
         </Badge>
       </header>

@@ -16,6 +16,22 @@ export const STAGE_STATUS_TONE: Record<
   COMPLETED: { badge: 'positive', label: 'Completed', css: 'completed' },
 };
 
+/**
+ * A stage's raw `status` only advances to COMPLETED via a posted result or an
+ * explicit operator override (Core Atlas's stage.service.ts) — an entry/
+ * MANUAL stage that onboards candidates by invite rather than posted results
+ * (e.g. DragnetScreening) never gets a result posted to it, so it can never
+ * earn COMPLETED that way even once everyone has moved past it. Displayed
+ * status corrects for that: a stage nobody currently occupies, but which has
+ * genuinely sent candidates onward before, reads as Completed instead of
+ * staying stuck on Active forever.
+ */
+export function effectiveStageStatus(stage: PipelineStage): PipelineStageStatus {
+  if (stage.status === 'NEEDS_ACTION' || stage.status === 'COMPLETED') return stage.status;
+  if (stage.candidates === 0 && stage.stats.progressed_count > 0) return 'COMPLETED';
+  return stage.status;
+}
+
 export function StageRail({
   stages,
   totalCandidates,
@@ -27,9 +43,9 @@ export function StageRail({
   onRefresh: () => void;
   refreshing?: boolean;
 }) {
-  const needsAction = stages.filter((s) => s.status === 'NEEDS_ACTION').length;
-  const active = stages.filter((s) => s.status === 'ACTIVE').length;
-  const awaiting = stages.filter((s) => s.status === 'AWAITING').length;
+  const needsAction = stages.filter((s) => effectiveStageStatus(s) === 'NEEDS_ACTION').length;
+  const active = stages.filter((s) => effectiveStageStatus(s) === 'ACTIVE').length;
+  const awaiting = stages.filter((s) => effectiveStageStatus(s) === 'AWAITING').length;
 
   return (
     <div className="card card-pad">
@@ -48,14 +64,15 @@ export function StageRail({
       <div className={s.stageGrid} style={{ '--stage-count': stages.length } as CSSProperties}>
         {stages.map((stage, i) => {
           const isLast = i === stages.length - 1;
-          const tone = STAGE_STATUS_TONE[stage.status];
+          const status = effectiveStageStatus(stage);
+          const tone = STAGE_STATUS_TONE[status];
           return (
             <div key={stage.platform_slug} className={s.stageNode}>
               {!isLast && <div className={s.stageConnector} />}
               <div className={s.stageContent}>
                 <div className={`${s.stageCircle} ${s[tone.css] ?? ''}`}>
                   <span>{i + 1}</span>
-                  {stage.status === 'NEEDS_ACTION' && <span className={s.stageBadge}>!</span>}
+                  {status === 'NEEDS_ACTION' && <span className={s.stageBadge}>!</span>}
                 </div>
                 <div className={s.stageName}>{stage.platform_name}</div>
                 <div className={s.stageCount}>{stage.candidates}</div>

@@ -8,6 +8,22 @@ import type {
   ShortlistQueryResult,
 } from '../types';
 
+// The stable, deterministic identifier for a shortlist — used wherever it's
+// referenced as a record (dropdown lists, CSV export filenames), as opposed
+// to `name`, which is a free-text label an operator can set to anything.
+// Campaign business keys (e.g. "ACCESS3/SEPTEMBER/2026") contain slashes,
+// which are fine in on-screen text but not in a filename — `forFilename`
+// swaps them for a safe separator.
+export function formatShortlistIdentifier(
+  campaignBusinessKey: string,
+  platformSlug: string,
+  version: number,
+  { forFilename = false }: { forFilename?: boolean } = {},
+): string {
+  const key = forFilename ? campaignBusinessKey.replace(/[/\\]+/g, '-') : campaignBusinessKey;
+  return `${key}-${platformSlug}-v${version}`;
+}
+
 export async function listShortlists(id: string, filters: { platform_slug?: string; status?: string } = {}): Promise<Shortlist[]> {
   const params = new URLSearchParams();
   if (filters.platform_slug) params.set('platformSlug', filters.platform_slug);

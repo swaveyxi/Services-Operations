@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { useToast } from '@/context/ToastContext';
 import { formatDate, humanizeSlug } from '@/utils/format';
-import { discardShortlist, lockShortlist, progressShortlist, uploadShortlistBrief } from '../services/shortlist';
+import {
+  discardShortlist,
+  formatShortlistIdentifier,
+  lockShortlist,
+  progressShortlist,
+  uploadShortlistBrief,
+} from '../services/shortlist';
 import type { PipelineStage, Shortlist, ShortlistDetail, ShortlistMember } from '../types';
 import s from './Shortlist.module.css';
 
@@ -50,12 +56,14 @@ function downloadCsv(filename: string, content: string) {
 
 export function RightPanel({
   campaignId,
+  campaignBusinessKey,
   stages,
   summary,
   detail,
   onChanged,
 }: {
   campaignId: string;
+  campaignBusinessKey: string;
   stages: PipelineStage[];
   summary: Shortlist;
   detail: ShortlistDetail | null | undefined;
@@ -116,7 +124,10 @@ export function RightPanel({
   function onExportCsv() {
     if (!detail) return;
     const csv = membersToCsv(detail.members);
-    downloadCsv(`${summary.name}-${summary.platform_slug}-v${summary.version}.csv`, csv);
+    const identifier = formatShortlistIdentifier(campaignBusinessKey, summary.platform_slug, summary.version, {
+      forFilename: true,
+    });
+    downloadCsv(`${identifier}.csv`, csv);
   }
 
   async function onDiscard() {
