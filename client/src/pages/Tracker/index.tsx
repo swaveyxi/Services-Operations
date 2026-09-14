@@ -82,6 +82,9 @@ export default function Tracker() {
   const isOwner = !!(c && userId && c.owner_user_id === userId);
   const archived = !!c?.is_archived;
   const locked = c ? archived || !['Draft', 'Workplan'].includes(c.campaign_status ?? '') : false;
+  // Mirrors the server-side check in deleteCampaign — a case with any
+  // configured workplan or submitted form can't be deleted, only archived.
+  const canDelete = workplans.length === 0 && forms.length === 0;
   const profit = useMemo(
     () => (c ? computeProfitability(c.revenue_items ?? [], c.cost_items ?? []) : null),
     [c],
@@ -218,7 +221,12 @@ export default function Tracker() {
             <button
               className='btn btn-danger'
               onClick={() => setShowDeleteConfirm(true)}
-              disabled={archiving}
+              disabled={archiving || !canDelete}
+              title={
+                canDelete
+                  ? undefined
+                  : 'This case has configured workplans or submitted forms and cannot be deleted. Archive it instead.'
+              }
             >
               <i className='fa-solid fa-trash' aria-hidden='true' /> Delete
             </button>

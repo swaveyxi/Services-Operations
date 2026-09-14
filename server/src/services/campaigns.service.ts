@@ -22,6 +22,8 @@ import {
   type CampaignFilters,
 } from '../models/campaigns';
 import { findClientById } from '../models/clients';
+import { findWorkplansByCampaign } from '../models/workplans';
+import { findFormsByCampaign } from '../models/forms';
 import { calcProfitability, type ProfitabilitySummary } from './profitability.service';
 import {
   notifyCampaignApproved,
@@ -481,6 +483,17 @@ export async function deleteCampaign(
   if (!campaign) throw createError(404, 'Campaign not found.');
   if (campaign.owner_user_id !== actorId) {
     throw createError(403, 'Only the case owner can delete this case.');
+  }
+
+  const [workplans, forms] = await Promise.all([
+    findWorkplansByCampaign(id),
+    findFormsByCampaign(id),
+  ]);
+  if (workplans.length > 0 || forms.length > 0) {
+    throw createError(
+      409,
+      'This case has configured workplans or submitted forms and cannot be deleted. Archive it instead.',
+    );
   }
 
   // Build the notification data before the row is marked deleted — every read
