@@ -651,8 +651,6 @@ export const FORM_FIELDS: Record<string, Field[]> = {
   /* ── 8. Verification Order Form ────────────────────────── */
   'verification-order': [
     sec('A. Customer Details'),
-    txt('campaignIdField', 'Campaign ID'),
-    txt('clientNameField', 'Client Name'),
     cbx(
       'verificationType',
       'Type of Verification Required (select all that apply)',
@@ -690,7 +688,6 @@ export const FORM_FIELDS: Record<string, Field[]> = {
 
     sec('E. Approval'),
     txt('requestingParty', 'Name of Requesting Party'),
-    df('approvalDate', 'Date'),
   ],
 
   /* ── 9. Test Order Form ─────────────────────────────────── */
