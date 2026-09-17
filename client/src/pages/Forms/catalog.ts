@@ -672,7 +672,6 @@ export const FORM_FIELDS: Record<string, Field[]> = {
       hint: 'For each selected type, specify the number of candidates e.g. "Academic Verification: 45"',
     }),
     odf('documentLink', 'Document Folder'),
-    odf('approvedReportLink', 'Approved Profitability Report'),
 
     sec('B. Document Requirements Reference'),
     area('additionalInstructions', 'Additional Instructions', {
